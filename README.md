@@ -2,7 +2,7 @@
 
 *The company is made up, but the lab is real. Every config, output and log line in this note comes from my own Cisco Packet Tracer build, unless I've marked it **Illustrative**.*
 
-> [!abstract] At a glance
+> At a glance
 > - **The company (made up):** Redgum Accounting Group - a head office (HQ) in Melbourne CBD and a smaller branch in Geelong, about 30 staff. They store clients' tax file numbers (TFNs), so a leak would be a big deal.
 > - **The problem:** the network was built to *work*, not to be *safe*. Anyone could get into the devices, traffic between the two offices wasn't encrypted, nothing filtered traffic at the branch, nothing watched for attacks, and there were no useful logs.
 > - **What I did:** I checked the network and found 10 problems, planned a fix for each one, then built and secured 3 routers, 3 switches and an ASA 5505 firewall. Then I attacked my own build to check the fixes really worked.
@@ -14,7 +14,7 @@
 |---|---|
 | **Role** | Network security consultant (simulated engagement) |
 | **Primary tool** | Cisco Packet Tracer - 1941 routers (securityk9 licence), 2960 switches, ASA 5505 |
-| **Disciplines** | CCNA routing and switching · Security+ · SOC detection · DFIR evidence handling |
+| **Disciplines** | CCNA routing and switching · Security+ · SOC detection |
 
 > [!info] How to read this note
 > I'm an entry level cybersecurity learner who also studied CCNA, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. I tried to explain the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
@@ -45,7 +45,7 @@ Redgum Accounting Group Pty Ltd is a made-up accounting and tax firm with two of
 
 | | HQ - Melbourne CBD | Branch - Geelong |
 |---|---|---|
-| Staff | About 22 | About 8, including the firm's only IT Officer |
+| Staff | About 22 | About 8, including the firm's only Jack-of-all-trades IT Officer |
 | What lives there | Staff LAN and the application server segment (practice management and tax software) | Staff LAN |
 | Edge devices | R1 router + ASA 5505 firewall | R3 router |
 
@@ -73,7 +73,7 @@ And when someone asked the IT Officer, "would we even know if someone tried?", n
 "Scope" just means what I'm allowed to work on.
 
 - **In scope (mine to change):** R1, R3, S1-S3, the ASA and both WAN links.
-- **Out of scope (not mine to touch):** the PCs themselves, the server operating systems, and R2 (it belongs to the ISP).
+- **Out of scope (not mine to touch):** the PCs themselves, the server operating systems, and R2 (in this case, it belongs to the ISP).
 - **Constraints:** use the hardware the firm already owns (1941 routers with the securityk9 licence, 2960 switches, ASA 5505). There's no money yet for an AAA server (a central login server) or a SIEM (a system that collects and analyses logs).
 
 ### Device roles
