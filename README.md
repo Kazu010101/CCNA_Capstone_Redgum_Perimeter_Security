@@ -96,37 +96,7 @@ Here's the part each lab device plays in the story:
 
 How to read it: solid lines are cables, and the dashed line between R1 and R3 is the VPN tunnel. The tunnel's traffic still physically travels through R2, but R2 can't read it.
 
-```mermaid
-flowchart TB
-    subgraph HQ["HQ - Melbourne CBD"]
-        SRV[("HQ server segment<br/>Lo1 192.168.20.0/24")]
-        R1["R1 - HQ edge router"]
-        ASA{{"CCNAS-ASA 5505<br/>OUTSIDE .234 sec 0<br/>INSIDE .1 sec 100"}}
-        S2["S2<br/>192.168.10.12"]
-        S1["S1<br/>192.168.10.11"]
-        PCA["PC-A<br/>192.168.10.2"]
-        PCB["PC-B<br/>192.168.10.3"]
-    end
-    subgraph NET["Internet - untrusted"]
-        R2["R2 - ISP router"]
-    end
-    subgraph BR["Branch - Geelong"]
-        R3["R3 - branch edge router<br/>ZPF + IPS"]
-        S3["S3<br/>192.168.30.11"]
-        PCC["PC-C 192.168.30.3<br/>IT admin workstation"]
-    end
-    SRV --- R1
-    R1 ---|"G0/0 - 209.165.200.232/29"| ASA
-    ASA ---|"E0/1 - 192.168.10.0/24"| S2
-    S2 ---|"Fa0/1 trunk - native VLAN 99"| S1
-    S1 --- PCA
-    S2 --- PCB
-    R1 ---|"S0/0/0 - 12.12.12.0/30"| R2
-    R2 ---|"23.23.23.0/30 - S0/0/1"| R3
-    R3 ---|"G0/1 - 192.168.30.0/24"| S3
-    S3 --- PCC
-    R1 -.-|"IPsec site-to-site VPN - AES-256"| R3
-```
+
 
 ### Addressing
 
@@ -169,9 +139,9 @@ flowchart LR
     E -.->|"re-test"| D
 ```
 
-I treated this like a small real-world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
+Let's treat this like a small real world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
 
-To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop me from poking around randomly - like a detective deciding what they're asking before collecting clues:
+To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop investigators from poking around randomly:
 
 1. What question am I trying to answer?
 2. What data do I need to answer it?
@@ -206,7 +176,7 @@ The CIA column shows which part of the CIA triad each problem puts at risk. Seve
 
 ## 4. Phase 2 - Design
 
-For each problem I picked a control - a fix or a protection. The last column uses Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
+For each problem I picked a control, a fix or a protection. The last column uses Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
 
 | Finding | Control | Device(s) | Security+ control type |
 |---|---|---|---|
@@ -225,7 +195,7 @@ For each problem I picked a control - a fix or a protection. The last column use
 
 A trade-off is what you give up to get something else. Here's what I chose, and why:
 
-- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One box does it all, and the firm doesn't have to buy anything.
+- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One device does it all, and the firm doesn't have to buy anything.
 - **Site-to-site VPN, not remote-access VPN.** A site-to-site VPN connects two whole offices; a remote-access VPN connects one person's laptop. The whole branch needs HQ all day, so encrypting between the two routers means no VPN software on every PC.
 - **Local AAA, not RADIUS or TACACS+.** RADIUS and TACACS+ are central login servers, and the firm doesn't have one yet. Local AAA (accounts stored on each device) still gives everyone a named login and a lockout. The downside I'm accepting: accounts live separately on every device, and there's no MFA (see the roadmap).
 - **The IPS only checks incoming WAN traffic.** That's where untrusted traffic comes in, and checking just one direction stops a small router from working too hard.
@@ -322,7 +292,7 @@ router ospf 1
 > A VLAN splits one physical switch into separate virtual networks - like separate floors in one building. A trunk is a link that carries traffic for many VLANs, like a lift that stops at every floor; each frame wears a floor badge (an 802.1Q tag) so the next switch knows where it belongs. The native VLAN is where frames *without* a badge end up.
 
 > [!faq]+ What is DTP?
-> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. Handy - but an attacker's laptop can answer "yes".
+> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. It is handy, but an attacker's laptop can answer "yes".
 
 **Decision:** set the trunk manually, turn DTP off and move the native VLAN to an unused VLAN (99). I also gave each switch a management IP and default gateway, so it can be managed (and later send logs) across subnets.
 
@@ -409,7 +379,7 @@ login on-failure log
 ```
 
 > [!note] Why no `login local` or line passwords?
-> This one confused me at first. Once `aaa new-model` is turned on, every line automatically uses the AAA `default` login method, so the per-line `login local` and line passwords in my first draft weren't needed any more. The `enable` at the end of the method list is only a backup for when the local user database can't be used at all - typing a wrong password does not fall through to it.
+> This one confused me at first. Once `aaa new-model` is turned on, every line automatically uses the AAA `default` login method, so the per-line `login local` and line passwords in my first draft weren't needed any more. The `enable` at the end of the method list is only a backup for when the local user database can't be used at all, so typing a wrong password does not fall through to it.
 
 Cisco uses privilege levels from 0 to 15 to decide which commands someone can run - the higher the number, the more power:
 
@@ -588,7 +558,7 @@ IPS Category CLI Configuration:
 > [!info] Why this matters for security
 > - **Signature-based** detection looks for known patterns - like a bouncer with photos of people who are banned. **Anomaly-based** detection flags anything unusual compared with normal behaviour - like a bouncer who notices someone acting strangely.
 > - **IPS vs IDS:** this IPS sits inline (in the path), so it can drop packets (`deny-packet-inline`). An IDS can only alert.
-> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut - fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during tax season, but it should be a written-down decision, not a default nobody noticed.
+> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut. Fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during tax season, but it should be a written-down decision, not a default nobody noticed.
 > - **Tuning:** blocking every ping also stops ping-based monitoring tools from checking that R3 is alive. A SOC would tune this - adjusting the rules so they block attacks without breaking normal work.
 
 ### 5.6 Site-to-site IPsec VPN between R1 and R3
@@ -598,7 +568,7 @@ IPS Category CLI Configuration:
 > [!faq]+ What are a VPN and IPsec?
 > A VPN builds a private, encrypted tunnel across a network you don't trust. IPsec is the set of protocols doing the encrypting and checking here. It's like putting your letters in a locked box before handing them to the public post: the postie still carries them, but can't read them.
 
-**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic" - the traffic that should go through the tunnel - is the HQ server segment talking to the branch LAN (ACL 101).
+**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic", the traffic that should go through the tunnel, is the HQ server segment talking to the branch LAN (ACL 101).
 
 > [!faq]+ What are IKE Phase 1 and Phase 2?
 > The tunnel is built in two steps. In **Phase 1**, the two routers prove who they are and build a safe channel to talk in - like two people stepping into a private room and agreeing on a secret language. In **Phase 2**, they use that room to agree on how to pack and lock the actual data. These agreements are called SAs (security associations). Phase 2 creates two of them, one for each direction, and each gets an ID number called an SPI.
@@ -1216,7 +1186,7 @@ Here's how I'll check that each fix actually works:
 
 ### 8.6 Residual risks and roadmap
 
-Residual risk is the risk that's left over after your fixes. These are the ones I know about but didn't fix in this round, mostly because each one is a bigger project:
+Residual risk is the risk that's left over after your fixes. These are the ones that are theoretically can be done, but I didn't fix in this round, mostly because each one is a bigger project:
 
 | Residual risk | Why it is not fixed here | Next step |
 |---|---|---|
