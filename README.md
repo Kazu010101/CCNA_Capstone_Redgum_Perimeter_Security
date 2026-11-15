@@ -7,18 +7,17 @@
 > - **The problem:** the network was built to *work*, not to be *safe*. Anyone could get into the devices, traffic between the two offices wasn't encrypted, nothing filtered traffic at the branch, nothing watched for attacks, and there were no useful logs.
 > - **What I did:** I checked the network and found 10 problems, planned a fix for each one, then built and secured 3 routers, 3 switches and an ASA 5505 firewall. Then I attacked my own build to check the fixes really worked.
 > - **What happened:** password guessing over SSH got locked out after 3 tries (for 300 seconds, and every attempt was logged) · a flood of pings was blocked by the IPS (20 out of 20 dropped, each one alerted) · traffic between the offices was encrypted with AES-256 IPsec (I proved it three different ways) · the branch router now only lets in replies to conversations started from inside (testing the "block everything else" part is still on my re-test list).
-> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 - and wrote beginner-level CCNA fixes for each one.
+> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 and I wrote simple fixes for each one.
 > - **Short on time?** Jump to [[#10. Let Your Work Speak Before You Do|section 10]].
 
 | Item | Detail |
 |---|---|
 | **Role** | Network security consultant (simulated engagement) |
 | **Primary tool** | Cisco Packet Tracer - 1941 routers (securityk9 licence), 2960 switches, ASA 5505 |
-| **Origin** | RMIT Certificate IV in Cyber Security (22334VIC), units VU21991 / ICTNWK509 - perimeter lab re-framed as a client engagement |
 | **Disciplines** | CCNA routing and switching · Security+ · SOC detection · DFIR evidence handling |
 
 > [!info] How to read this note
-> I'm a CCNA learner who is also studying cybersecurity, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. It explains the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
+> I'm an entry level cybersecurity learner who also studied CCNA, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. I tried to explain the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
 
 ## Contents
 
