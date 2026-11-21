@@ -6,24 +6,23 @@
 > [!NOTE]
 > **At a glance**
 >
-> - **The company (made up):** Redgum Accounting Group - a head office (HQ) in Melbourne CBD and a smaller branch in Geelong, about 30 staff. They store clients' tax file numbers (TFNs), so a leak would be a big deal.
-> - **The problem:** the network was built to *work*, not to be *safe*. Anyone could get into the devices, traffic between the two offices wasn't encrypted, nothing filtered traffic at the branch, nothing watched for attacks, and there were no useful logs.
-> - **What I did:** I checked the network and found 10 problems, planned a fix for each one, then built and secured 3 routers, 3 switches and an ASA 5505 firewall. Then I attacked my own build to check the fixes really worked.
+> - **The company:** Redgum Accounting Group has a head office (HQ) in Melbourne CBD and a smaller branch in Geelong, about 30 staff. They store clients' tax file numbers (TFNs), so a leak would be a big deal.
+> - **The problem:** the network was built to *work*, but not to be *safe*. Anyone could get into the devices, traffic between the two offices wasn't encrypted, nothing filtered traffic at the branch, nothing watched for attacks, and there were no useful logs.
+> - **What I did:** I assessed the network and found 10 problems, planned a fix for each one, then built and secured 3 routers, 3 switches and an ASA 5505 firewall. Then I attacked my own build to check the fixes really worked.
 > - **What happened:** password guessing over SSH got locked out after 3 tries (for 300 seconds, and every attempt was logged) · a flood of pings was blocked by the IPS (20 out of 20 dropped, each one alerted) · traffic between the offices was encrypted with AES-256 IPsec (I proved it three different ways) · the branch router now only lets in replies to conversations started from inside (testing the "block everything else" part is still on my re-test list).
-> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 - and wrote beginner-level CCNA fixes for each one.
+> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 - and wrote the fixes for each one.
 > - **Short on time?** Jump to [section 10](#10-let-your-work-speak-before-you-do).
 
 | Item | Detail |
 |---|---|
 | **Role** | Network security consultant (simulated engagement) |
 | **Primary tool** | Cisco Packet Tracer - 1941 routers (securityk9 licence), 2960 switches, ASA 5505 |
-| **Origin** | RMIT Certificate IV in Cyber Security (22334VIC), units VU21991 / ICTNWK509 - perimeter lab re-framed as a client engagement |
-| **Disciplines** | CCNA routing and switching · Security+ · SOC detection · DFIR evidence handling |
+| **Disciplines** | CCNA routing and switching (90%)· Security+ (5%)· SOC detection (5%)|
 
 > [!NOTE]
 > **How to read this note**
 >
-> I'm a CCNA learner who is also studying cybersecurity, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. It explains the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
+> I'm studying defensive cybersecurity and I had studied CCNA for my networking skills. I wrote this for other learners at the same stage. So, whenever a new idea comes up, look for a **"What is...?"** box. It explains the idea in beginner-friendly and plain English, usually with an everyday comparison. If you already know it, just skip past it.
 
 ## Contents
 
@@ -62,7 +61,7 @@ Why does security matter so much for a firm like this? I used the CIA triad to t
 >
 > It's the three things security tries to protect: **Confidentiality** (only the right people can see the data), **Integrity** (nobody can secretly change it) and **Availability** (it's there when people need it). Think of a bank vault: only staff get in, nobody swaps the cash for fake notes, and it opens during business hours.
 
-- **Confidentiality** - client TFNs, bank details and financial statements must stay private. Because Redgum handles TFNs, any breach involving TFN information falls under the Privacy Act's Notifiable Data Breaches (NDB) scheme, whatever the firm's turnover. In simple terms: if TFNs leak, the firm may have to report it to the regulator and tell the affected clients.
+- **Confidentiality** - client TFNs, bank details and financial statements must stay private. Because Redgum handles TFNs, any breach involving TFN information falls under the Privacy Act's Notifiable Data Breaches (NDB) scheme, whatever the firm's turnover. In simple terms: if TFNs leak, the firm may have to report it to the regulator and tell the affected clients, and that would at least cause some reputational damage.
 - **Integrity** - if someone changed figures or bank details, clients could lose real money.
 - **Availability** - July to October is tax season, so the branch needs the HQ servers all day.
 
@@ -74,7 +73,7 @@ In this story, the firm's cyber-insurance renewal asked three questions nobody c
 2. Is data travelling between sites encrypted?
 3. Can you detect attacks and produce logs to investigate them?
 
-And when someone asked the IT Officer, "would we even know if someone tried?", nobody had an answer either. That question is really what this whole project is about.
+And when someone asked the company's only jack-of-all-trades IT Officer, "would we even know if someone tried?", nobody had an answer either. Answering these questions is the focus of this project.
 
 ### Scope and constraints
 
@@ -82,7 +81,7 @@ And when someone asked the IT Officer, "would we even know if someone tried?", n
 
 - **In scope (mine to change):** R1, R3, S1-S3, the ASA and both WAN links.
 - **Out of scope (not mine to touch):** the PCs themselves, the server operating systems, and R2 (it belongs to the ISP).
-- **Constraints:** use the hardware the firm already owns (1941 routers with the securityk9 licence, 2960 switches, ASA 5505). There's no money yet for an AAA server (a central login server) or a SIEM (a system that collects and analyses logs).
+- **Constraints:** use the hardware the firm already owns (1941 routers with the securityk9 licence, 2960 switches, ASA 5505). In this scenario, there's no budget yet for an AAA server (a central login server) or a SIEM (a system that collects and analyses logs).
 
 ### Device roles
 
