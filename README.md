@@ -128,14 +128,14 @@ There is a VPN tunnel between R1 and R3. The tunnel's traffic still physically t
 > [!TIP]
 > **What do /24, /29 and /30 mean?**
 >
-> The number after the slash says how much of the address is the *network* part. Think of it like a street name (the network) and house numbers (the hosts): the bigger the slash number, the fewer houses on the street. A /30 has just 2 usable addresses - perfect for a link between two routers. A /29 has 6, and a /24 has 254.
+> The number after the slash says how much of the address is the *network* part. Think of it like a street name (the network) and house numbers (the hosts): the bigger the slash number, the fewer houses on the street. A /30 has just 2 usable addresses, which is perfect for a link between two routers. A /29 has 6, and a /24 has 254. In networking, the slashing of the adderess is called CIDR notation. 
 
 > [!NOTE]
 > **Lab simplifications (things I simplified on purpose)**
 >
 > - **R2 plays "the Internet".** In my lab, R2 runs OSPF with both offices, so it also learns Redgum's private routes. A real ISP would never carry private (RFC 1918) addresses like 192.168.x.x. In real life, each office would send everything to the ISP using a default route, and private traffic would only travel inside the VPN.
 > - **The server segment is a loopback** (Lo1). A loopback is a virtual interface that is always up, which makes it a handy Packet Tracer trick for pretending a whole server subnet exists.
-> - **Passwords and keys are lab values** from the Cisco training material. Never reuse them, and never publish real ones.
+> - **Passwords and keys are default lab values** from the Cisco training material. Never reuse them, and never publish real ones.
 
 ---
 
