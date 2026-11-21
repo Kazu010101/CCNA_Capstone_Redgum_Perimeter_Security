@@ -1,5 +1,5 @@
 
-# Securing a Two-Site Network Perimeter - CCNA Capstone
+# Securing Redgum: a Two-Site Network Perimeter - CCNA Capstone
 
 *The company is made up, but the lab is real. Every config, output and log line in this note comes from my own Cisco Packet Tracer build, unless I've marked it **Illustrative**.*
 
