@@ -1,39 +1,45 @@
+
 # Securing a Two-Site Network Perimeter - CCNA Capstone
 
 *The company is made up, but the lab is real. Every config, output and log line in this note comes from my own Cisco Packet Tracer build, unless I've marked it **Illustrative**.*
 
-> At a glance
+> [!NOTE]
+> **At a glance**
+>
 > - **The company (made up):** Redgum Accounting Group - a head office (HQ) in Melbourne CBD and a smaller branch in Geelong, about 30 staff. They store clients' tax file numbers (TFNs), so a leak would be a big deal.
 > - **The problem:** the network was built to *work*, not to be *safe*. Anyone could get into the devices, traffic between the two offices wasn't encrypted, nothing filtered traffic at the branch, nothing watched for attacks, and there were no useful logs.
 > - **What I did:** I checked the network and found 10 problems, planned a fix for each one, then built and secured 3 routers, 3 switches and an ASA 5505 firewall. Then I attacked my own build to check the fixes really worked.
 > - **What happened:** password guessing over SSH got locked out after 3 tries (for 300 seconds, and every attempt was logged) · a flood of pings was blocked by the IPS (20 out of 20 dropped, each one alerted) · traffic between the offices was encrypted with AES-256 IPsec (I proved it three different ways) · the branch router now only lets in replies to conversations started from inside (testing the "block everything else" part is still on my re-test list).
-> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 and I wrote simple fixes for each one.
-> - **Short on time?** Jump to [[#10. Let Your Work Speak Before You Do|section 10]].
+> - **Then:** I reviewed my own work and found 11 gaps - including a VPN setting that real Cisco gear would reject, and logs stamped with the year 1993 - and wrote beginner-level CCNA fixes for each one.
+> - **Short on time?** Jump to [section 10](#10-let-your-work-speak-before-you-do).
 
 | Item | Detail |
 |---|---|
 | **Role** | Network security consultant (simulated engagement) |
 | **Primary tool** | Cisco Packet Tracer - 1941 routers (securityk9 licence), 2960 switches, ASA 5505 |
-| **Disciplines** | CCNA routing and switching · Security+ · SOC detection |
+| **Origin** | RMIT Certificate IV in Cyber Security (22334VIC), units VU21991 / ICTNWK509 - perimeter lab re-framed as a client engagement |
+| **Disciplines** | CCNA routing and switching · Security+ · SOC detection · DFIR evidence handling |
 
-> [!info] How to read this note
-> I'm an entry level cybersecurity learner who also studied CCNA, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. I tried to explain the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
+> [!NOTE]
+> **How to read this note**
+>
+> I'm a CCNA learner who is also studying cybersecurity, and I wrote this for other learners at the same stage. Whenever a new idea comes up, look for a **"What is...?"** box. It explains the idea in plain English, usually with an everyday comparison. If you already know it, just skip past it.
 
 ## Contents
 
-- [[#1. Scenario|1. Scenario]]
-- [[#2. Approach|2. Approach]]
-- [[#3. Phase 1 - Assess|3. Phase 1 - Assess]]
-- [[#4. Phase 2 - Design|4. Phase 2 - Design]]
-- [[#5. Phase 3 - Build and harden|5. Phase 3 - Build and harden]]
-- [[#6. Phase 4 - Attack and verify|6. Phase 4 - Attack and verify]]
-- [[#7. Troubleshooting log|7. Troubleshooting log]]
-- [[#8. Phase 5 - Review and improve|8. Phase 5 - Review and improve]]
-- [[#9. Security lens|9. Security lens]]
-- [[#10. Let Your Work Speak Before You Do|10. Let Your Work Speak Before You Do]]
-- [[#11. Skills demonstrated|11. Skills demonstrated]]
-- [[#Appendix - Final configurations|Appendix - Final configurations]]
-- [[#References|References]]
+- [1. Scenario](#1-scenario)
+- [2. Approach](#2-approach)
+- [3. Phase 1 - Assess](#3-phase-1---assess)
+- [4. Phase 2 - Design](#4-phase-2---design)
+- [5. Phase 3 - Build and harden](#5-phase-3---build-and-harden)
+- [6. Phase 4 - Attack and verify](#6-phase-4---attack-and-verify)
+- [7. Troubleshooting log](#7-troubleshooting-log)
+- [8. Phase 5 - Review and improve](#8-phase-5---review-and-improve)
+- [9. Security lens](#9-security-lens)
+- [10. Let Your Work Speak Before You Do](#10-let-your-work-speak-before-you-do)
+- [11. Skills demonstrated](#11-skills-demonstrated)
+- [Appendix - Final configurations](#appendix---final-configurations)
+- [References](#references)
 
 ---
 
@@ -45,13 +51,15 @@ Redgum Accounting Group Pty Ltd is a made-up accounting and tax firm with two of
 
 | | HQ - Melbourne CBD | Branch - Geelong |
 |---|---|---|
-| Staff | About 22 | About 8, including the firm's only Jack-of-all-trades IT Officer |
+| Staff | About 22 | About 8, including the firm's only IT Officer |
 | What lives there | Staff LAN and the application server segment (practice management and tax software) | Staff LAN |
 | Edge devices | R1 router + ASA 5505 firewall | R3 router |
 
 Why does security matter so much for a firm like this? I used the CIA triad to think it through.
 
-> [!faq]+ What is the CIA triad?
+> [!TIP]
+> **What is the CIA triad?**
+>
 > It's the three things security tries to protect: **Confidentiality** (only the right people can see the data), **Integrity** (nobody can secretly change it) and **Availability** (it's there when people need it). Think of a bank vault: only staff get in, nobody swaps the cash for fake notes, and it opens during business hours.
 
 - **Confidentiality** - client TFNs, bank details and financial statements must stay private. Because Redgum handles TFNs, any breach involving TFN information falls under the Privacy Act's Notifiable Data Breaches (NDB) scheme, whatever the firm's turnover. In simple terms: if TFNs leak, the firm may have to report it to the regulator and tell the affected clients.
@@ -73,7 +81,7 @@ And when someone asked the IT Officer, "would we even know if someone tried?", n
 "Scope" just means what I'm allowed to work on.
 
 - **In scope (mine to change):** R1, R3, S1-S3, the ASA and both WAN links.
-- **Out of scope (not mine to touch):** the PCs themselves, the server operating systems, and R2 (in this case, it belongs to the ISP).
+- **Out of scope (not mine to touch):** the PCs themselves, the server operating systems, and R2 (it belongs to the ISP).
 - **Constraints:** use the hardware the firm already owns (1941 routers with the securityk9 licence, 2960 switches, ASA 5505). There's no money yet for an AAA server (a central login server) or a SIEM (a system that collects and analyses logs).
 
 ### Device roles
@@ -96,7 +104,37 @@ Here's the part each lab device plays in the story:
 
 How to read it: solid lines are cables, and the dashed line between R1 and R3 is the VPN tunnel. The tunnel's traffic still physically travels through R2, but R2 can't read it.
 
-
+```mermaid
+flowchart TB
+    subgraph HQ["HQ - Melbourne CBD"]
+        SRV[("HQ server segment<br/>Lo1 192.168.20.0/24")]
+        R1["R1 - HQ edge router"]
+        ASA{{"CCNAS-ASA 5505<br/>OUTSIDE .234 sec 0<br/>INSIDE .1 sec 100"}}
+        S2["S2<br/>192.168.10.12"]
+        S1["S1<br/>192.168.10.11"]
+        PCA["PC-A<br/>192.168.10.2"]
+        PCB["PC-B<br/>192.168.10.3"]
+    end
+    subgraph NET["Internet - untrusted"]
+        R2["R2 - ISP router"]
+    end
+    subgraph BR["Branch - Geelong"]
+        R3["R3 - branch edge router<br/>ZPF + IPS"]
+        S3["S3<br/>192.168.30.11"]
+        PCC["PC-C 192.168.30.3<br/>IT admin workstation"]
+    end
+    SRV --- R1
+    R1 ---|"G0/0 - 209.165.200.232/29"| ASA
+    ASA ---|"E0/1 - 192.168.10.0/24"| S2
+    S2 ---|"Fa0/1 trunk - native VLAN 99"| S1
+    S1 --- PCA
+    S2 --- PCB
+    R1 ---|"S0/0/0 - 12.12.12.0/30"| R2
+    R2 ---|"23.23.23.0/30 - S0/0/1"| R3
+    R3 ---|"G0/1 - 192.168.30.0/24"| S3
+    S3 --- PCC
+    R1 -.-|"IPsec site-to-site VPN - AES-256"| R3
+```
 
 ### Addressing
 
@@ -118,10 +156,14 @@ How to read it: solid lines are cables, and the dashed line between R1 and R3 is
 | PC-B | NIC | 192.168.10.3 | 255.255.255.0 | 192.168.10.1 |
 | PC-C | NIC | 192.168.30.3 | 255.255.255.0 | 192.168.30.1 |
 
-> [!faq]+ What do /24, /29 and /30 mean?
+> [!TIP]
+> **What do /24, /29 and /30 mean?**
+>
 > The number after the slash says how much of the address is the *network* part. Think of it like a street name (the network) and house numbers (the hosts): the bigger the slash number, the fewer houses on the street. A /30 has just 2 usable addresses - perfect for a link between two routers. A /29 has 6, and a /24 has 254.
 
-> [!note] Lab simplifications (things I simplified on purpose)
+> [!NOTE]
+> **Lab simplifications (things I simplified on purpose)**
+>
 > - **R2 plays "the Internet".** In my lab, R2 runs OSPF with both offices, so it also learns Redgum's private routes. A real ISP would never carry private (RFC 1918) addresses like 192.168.x.x. In real life, each office would send everything to the ISP using a default route, and private traffic would only travel inside the VPN.
 > - **The server segment is a loopback** (Lo1). A loopback is a virtual interface that is always up, which makes it a handy Packet Tracer trick for pretending a whole server subnet exists.
 > - **Passwords and keys are lab values** from the Cisco training material. Never reuse them, and never publish real ones.
@@ -139,9 +181,9 @@ flowchart LR
     E -.->|"re-test"| D
 ```
 
-Let's treat this like a small real world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
+I treated this like a small real-world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
 
-To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop investigators from poking around randomly:
+To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop me from poking around randomly - like a detective deciding what they're asking before collecting clues:
 
 1. What question am I trying to answer?
 2. What data do I need to answer it?
@@ -169,14 +211,16 @@ To keep my testing and investigating focused, I used the **Alexiou Principle**. 
 
 The CIA column shows which part of the CIA triad each problem puts at risk. Severity is my own judgement of how likely and how harmful each one is.
 
-> [!tip] A lesson from F-04
+> [!TIP]
+> **A lesson from F-04**
+>
 > Every fix can open a new door. Turning on SSH fixed F-02 (no secure remote access), but it also gave attackers a login prompt to guess passwords at - so brute-force protection had to go in at the same time.
 
 ---
 
 ## 4. Phase 2 - Design
 
-For each problem I picked a control, a fix or a protection. The last column uses Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
+For each problem I picked a control - a fix or a protection. The last column uses Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
 
 | Finding | Control | Device(s) | Security+ control type |
 |---|---|---|---|
@@ -195,7 +239,7 @@ For each problem I picked a control, a fix or a protection. The last column uses
 
 A trade-off is what you give up to get something else. Here's what I chose, and why:
 
-- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One device does it all, and the firm doesn't have to buy anything.
+- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One box does it all, and the firm doesn't have to buy anything.
 - **Site-to-site VPN, not remote-access VPN.** A site-to-site VPN connects two whole offices; a remote-access VPN connects one person's laptop. The whole branch needs HQ all day, so encrypting between the two routers means no VPN software on every PC.
 - **Local AAA, not RADIUS or TACACS+.** RADIUS and TACACS+ are central login servers, and the firm doesn't have one yet. Local AAA (accounts stored on each device) still gives everyone a named login and a lockout. The downside I'm accepting: accounts live separately on every device, and there's no MFA (see the roadmap).
 - **The IPS only checks incoming WAN traffic.** That's where untrusted traffic comes in, and checking just one direction stops a small router from working too hard.
@@ -208,22 +252,30 @@ A trade-off is what you give up to get something else. Here's what I chose, and 
 
 Order matters here. I built basic connectivity first (you can't test a security control on a network that doesn't route), then the switches, then device logins, then the branch's protection, then the VPN, and finally the HQ firewall.
 
-> [!faq]+ What does "harden" mean?
+> [!TIP]
+> **What does "harden" mean?**
+>
 > Hardening means removing the easy ways in: changing defaults, adding passwords and turning off things you don't use. It's like securing a house - lock the doors, shut the windows you never open, and don't leave a key under the mat.
 
-> [!info] How each control is written up
+> [!NOTE]
+> **How each control is written up**
+>
 > Each control follows the same pattern: **Finding → Decision → Config → Evidence → Why it matters for security.** The configs are written so you can paste them in after `configure terminal`. Lines starting with `!` are my comments explaining the why. Steps where the device asks you a question are shown with their prompts.
 
 ### 5.1 Foundation - addressing and OSPF
 
 **Why first:** every later control (SSH, the firewall, the IPS and the VPN) depends on the routers being able to reach each other. Layer 3 (routing) has to work before you can secure it.
 
-> [!faq]+ What is OSPF?
+> [!TIP]
+> **What is OSPF?**
+>
 > OSPF is a routing protocol: routers tell each other which networks they know about, and each router works out the best path. It's like a group of friends sharing one map - everyone adds the streets they know, then each person plans their own fastest route.
 
 **Decision:** OSPFv2, process 1, single area 0. Interfaces facing a LAN or the ASA are passive: their networks are still advertised, but no hellos go out of them.
 
-> [!faq]+ What is a passive interface?
+> [!TIP]
+> **What is a passive interface?**
+>
 > OSPF routers find each other by sending small "hello" messages. A passive interface still puts its network on the shared map, but stops sending hellos out of that port, so nothing on that side can join the conversation. It's like putting your street on the map without inviting strangers on that street to help draw it.
 
 ```cisco
@@ -277,22 +329,28 @@ router ospf 1
 **Evidence from my build**
 
 - Pings between all three routers: `Success rate is 100 percent (5/5)` in every direction.
-- PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind - it becomes important in [[#6.3 Test 3 - Is branch-to-HQ traffic really encrypted|Test 3]].
+- PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind - it becomes important in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
 
 **Also worth checking:** `show ip ospf neighbor` (look for FULL, which means two routers have fully shared their maps) and `show ip route ospf` (the routes learned through OSPF).
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > A passive interface means a rogue device plugged into the branch LAN can't make friends with R3 over OSPF and feed it fake routes (an attack called route poisoning). Share the map, but don't talk to strangers.
 
 ### 5.2 Switching layer - management and trunk security
 
 **Finding:** F-06. Out of the box, a 2960 trunk negotiates with DTP and uses VLAN 1 as its native VLAN.
 
-> [!faq]+ What are VLANs, trunks and the native VLAN?
+> [!TIP]
+> **What are VLANs, trunks and the native VLAN?**
+>
 > A VLAN splits one physical switch into separate virtual networks - like separate floors in one building. A trunk is a link that carries traffic for many VLANs, like a lift that stops at every floor; each frame wears a floor badge (an 802.1Q tag) so the next switch knows where it belongs. The native VLAN is where frames *without* a badge end up.
 
-> [!faq]+ What is DTP?
-> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. It is handy, but an attacker's laptop can answer "yes".
+> [!TIP]
+> **What is DTP?**
+>
+> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. Handy - but an attacker's laptop can answer "yes".
 
 **Decision:** set the trunk manually, turn DTP off and move the native VLAN to an unused VLAN (99). I also gave each switch a management IP and default gateway, so it can be managed (and later send logs) across subnets.
 
@@ -331,10 +389,14 @@ Port        Vlans allowed and active in management domain
 Fa0/1       1
 ```
 
-> [!warning] Spotted in review
-> The same output shows I never actually created VLAN 99, and the trunk still allows every VLAN from 1 to 1005. I fixed both in [[#8.1 Pack A - Lock down the access layer|Pack A]].
+> [!WARNING]
+> **Spotted in review**
+>
+> The same output shows I never actually created VLAN 99, and the trunk still allows every VLAN from 1 to 1005. I fixed both in [Pack A](#81-pack-a---lock-down-the-access-layer).
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > - **Switch spoofing:** if DTP is on, an attacker's laptop can pretend to be a switch, negotiate a trunk and see every VLAN - like getting into the lift that stops at every floor. Setting the trunk manually and adding `nonegotiate` switches that feature off.
 > - **Double tagging:** the attacker hides a second badge under the first one. The first switch removes the outer badge, and the next switch reads the hidden one and delivers the frame to a VLAN the attacker shouldn't reach. It only works when the attacker's VLAN matches the trunk's native VLAN, so an unused native VLAN (99) breaks the trick.
 
@@ -342,7 +404,9 @@ Fa0/1       1
 
 **Findings:** F-01 to F-04.
 
-> [!faq]+ What is the management plane?
+> [!TIP]
+> **What is the management plane?**
+>
 > It's everything you use to manage the device itself: logging in through the console cable or remotely, typing commands and changing settings. Think of it as a building's control room - whoever gets in there controls everything.
 
 **Decision:** protect every way in (console, VTY and privileged EXEC) with hashed secrets; allow SSH v2 only; make people log in with a named local account through AAA; log out idle sessions; and slow down and log failed logins. I applied this to R1 and R3 (and to R2 in the lab, where I first practised it).
@@ -378,8 +442,10 @@ login block-for 300 attempts 3 within 30
 login on-failure log
 ```
 
-> [!note] Why no `login local` or line passwords?
-> This one confused me at first. Once `aaa new-model` is turned on, every line automatically uses the AAA `default` login method, so the per-line `login local` and line passwords in my first draft weren't needed any more. The `enable` at the end of the method list is only a backup for when the local user database can't be used at all, so typing a wrong password does not fall through to it.
+> [!NOTE]
+> **Why no** `login local` **or line passwords?**
+>
+> This one confused me at first. Once `aaa new-model` is turned on, every line automatically uses the AAA `default` login method, so the per-line `login local` and line passwords in my first draft weren't needed any more. The `enable` at the end of the method list is only a backup for when the local user database can't be used at all - typing a wrong password does not fall through to it.
 
 Cisco uses privilege levels from 0 to 15 to decide which commands someone can run - the higher the number, the more power:
 
@@ -390,11 +456,13 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 | 2-14 | Custom levels, built by assigning commands with `privilege exec level` |
 | 15 | Privileged EXEC - everything (the `admin` account here) |
 
-**Evidence from my build:** R1's running-config shows `transport input ssh`, `security passwords min-length 10` and `login on-failure log`, and PC-C gets an SSH password prompt from R1. [[#6.1 Test 1 - SSH brute force against R1|Test 1]] proves the lockout works.
+**Evidence from my build:** R1's running-config shows `transport input ssh`, `security passwords min-length 10` and `login on-failure log`, and PC-C gets an SSH password prompt from R1. [Test 1](#61-test-1---ssh-brute-force-against-r1) proves the lockout works.
 
 **Also worth checking:** `show ip ssh` (it should say SSH is enabled, version 2.0) and `show login` (the lockout settings, and whether the router is blocking logins right now).
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > - **AAA:** Authentication (who are you?), Authorisation (what are you allowed to do?) and Accounting (what did you do?) - like showing ID at the front desk, the rooms your key card opens, and the visitor log. This build covers authentication. Accounting stays weak until Phase 5 adds central logging.
 > - **Secret vs password:** `secret` stores a hash; `password` stores plaintext, or reversible Type 7 at best. A hash is like a fingerprint of your password: the router can check it, but nobody can turn it back into the password. Type 7 is more like a simple code that anyone who knows the trick can undo. Always use `secret`.
 > - **Telnet vs SSH:** Telnet sends your password in cleartext, like writing it on a postcard - anyone handling it can read it (ATT&CK T1040, Network Sniffing). SSH is a sealed envelope.
@@ -402,7 +470,9 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 
 ### 5.4 Branch perimeter - Zone-Based Policy Firewall on R3
 
-> [!tip] Before you start - the securityk9 licence on R1 and R3
+> [!TIP]
+> **Before you start - the securityk9 licence on R1 and R3**
+>
 > ZPF, IPS and IPsec are all part of the router's security feature pack, which has to be switched on with a licence first (and needs a reload). Both running-configs in my build show the licence line.
 > ```cisco
 > R3(config)# license boot module c1900 technology-package securityk9
@@ -414,7 +484,9 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 
 **Finding:** F-08. Anything on the internet side of R3 could open a connection straight into the branch LAN.
 
-> [!faq]+ What are zones and a stateful firewall?
+> [!TIP]
+> **What are zones and a stateful firewall?**
+>
 > A zone is a group of interfaces with the same trust level - here, IN-ZONE (the branch LAN) and OUT-ZONE (towards the internet). A stateful firewall remembers who started each conversation. Picture a receptionist who knows you rang the plumber, so when the plumber calls back they're put straight through - but random callers aren't.
 
 **Decision:** two zones, one direction. Traffic from the branch LAN going out is inspected (that's the stateful part), so the replies are allowed back in automatically. There's no rule letting the outside start a conversation inwards, so new inbound sessions are dropped by default. I chose ZPF over plain ACLs because it's stateful, it blocks traffic between zones by default, and the policy reads almost like a sentence.
@@ -480,11 +552,15 @@ policy exists on zp IN-2-OUT-PAIR
 
 PC-C's ping created a tracked session (`SIS_OPEN`). That entry in the firewall's memory is what lets the replies back in. Anything that doesn't match ACL 110 falls into `class-default` and gets dropped.
 
-> [!note] Design consequences
+> [!NOTE]
+> **Design consequences**
+>
 > - **No OUT-2-IN pair** means HQ can't *start* a connection into the branch, not even through the VPN, because traffic that comes out of the tunnel still arrives on the OUT-ZONE interface. That's fine for Redgum, because the branch pulls data from HQ, not the other way round. If HQ ever needed to push something, I'd add a narrow OUT-2-IN rule.
 > - **The self zone** (traffic to and from R3 itself) isn't covered by this policy - it's like mail addressed to the security guard rather than to a tenant. So R3's own logins need their own protection: 5.3 now, plus the management ACL in Phase 5.
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > - **Stateful vs stateless:** a stateless ACL judges every packet on its own, with no memory. A stateful firewall remembers who started the conversation.
 > - **Implicit deny between zones:** if no rule allows it, it's blocked. This "default deny" approach is the safest starting point.
 > - **Zones are segmentation** (Security+ calls them "security zones"): trust depends on where traffic comes from, not just on its IP address.
@@ -493,7 +569,9 @@ PC-C's ping created a tracked session (`SIS_OPEN`). That entry in the firewall's
 
 **Finding:** F-09. Nothing watched for, or blocked, hostile traffic arriving at the branch.
 
-> [!faq]+ IDS vs IPS - what's the difference?
+> [!TIP]
+> **IDS vs IPS - what's the difference?**
+>
 > An IDS (intrusion detection system) watches traffic and raises an alert. An IPS (intrusion prevention system) sits in the path of the traffic, so it can also block it. Think smoke alarm versus sprinkler: one makes noise, the other actually does something about it.
 
 **Decision:** Cisco IOS IPS, checking traffic coming in on S0/0/1 (the WAN side). It's signature-based, which means it looks for known attack patterns. I started small on purpose: retire (switch off) every signature group, switch the `ios_ips basic` group back on, then enable signature 2004 (ICMP Echo Request - the message a normal ping sends) with **alert + drop**. The goal is to make the branch invisible to ping sweeps (an attacker pinging a whole range of addresses to see who answers - like knocking on every door in a street to see who's home) and to stop ping floods at the door. Packet Tracer already keeps the signature files in flash, so I didn't need to import a key.
@@ -555,22 +633,28 @@ IPS Category CLI Configuration:
         Retire: False
 ```
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > - **Signature-based** detection looks for known patterns - like a bouncer with photos of people who are banned. **Anomaly-based** detection flags anything unusual compared with normal behaviour - like a bouncer who notices someone acting strangely.
 > - **IPS vs IDS:** this IPS sits inline (in the path), so it can drop packets (`deny-packet-inline`). An IDS can only alert.
-> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut. Fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during tax season, but it should be a written-down decision, not a default nobody noticed.
+> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut - fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during tax season, but it should be a written-down decision, not a default nobody noticed.
 > - **Tuning:** blocking every ping also stops ping-based monitoring tools from checking that R3 is alive. A SOC would tune this - adjusting the rules so they block attacks without breaking normal work.
 
 ### 5.6 Site-to-site IPsec VPN between R1 and R3
 
 **Finding:** F-07. Branch staff reached the HQ servers across the ISP in cleartext, so anyone on the path could read the traffic.
 
-> [!faq]+ What are a VPN and IPsec?
+> [!TIP]
+> **What are a VPN and IPsec?**
+>
 > A VPN builds a private, encrypted tunnel across a network you don't trust. IPsec is the set of protocols doing the encrypting and checking here. It's like putting your letters in a locked box before handing them to the public post: the postie still carries them, but can't read them.
 
-**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic", the traffic that should go through the tunnel, is the HQ server segment talking to the branch LAN (ACL 101).
+**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic" - the traffic that should go through the tunnel - is the HQ server segment talking to the branch LAN (ACL 101).
 
-> [!faq]+ What are IKE Phase 1 and Phase 2?
+> [!TIP]
+> **What are IKE Phase 1 and Phase 2?**
+>
 > The tunnel is built in two steps. In **Phase 1**, the two routers prove who they are and build a safe channel to talk in - like two people stepping into a private room and agreeing on a secret language. In **Phase 2**, they use that room to agree on how to pack and lock the actual data. These agreements are called SAs (security associations). Phase 2 creates two of them, one for each direction, and each gets an ID number called an SPI.
 
 | | Phase 1 - IKE (ISAKMP SA) | Phase 2 - IPsec SAs |
@@ -644,8 +728,10 @@ interface Serial0/0/1
  crypto map CMAP
 ```
 
-> [!warning] Spotted in review - R3 is not a mirror of R1
-> R3's crypto map is missing `set pfs group5`. On real Cisco IOS, a router that has PFS turned on insists on it for incoming requests - so when R3 starts the tunnel without PFS, Phase 2 fails. Packet Tracer let it through anyway. I fixed it in [[#8.3 Pack C - Fix the VPN drift|Pack C]].
+> [!WARNING]
+> **Spotted in review - R3 is not a mirror of R1**
+>
+> R3's crypto map is missing `set pfs group5`. On real Cisco IOS, a router that has PFS turned on insists on it for incoming requests - so when R3 starts the tunnel without PFS, Phase 2 fails. Packet Tracer let it through anyway. I fixed it in [Pack C](#83-pack-c---fix-the-vpn-drift).
 
 **Evidence from my build:** PC-C's ping to 192.168.20.1 lost the first packet, then got 3 replies at TTL=254. Here's `show crypto ipsec sa` on R1 (excerpt):
 
@@ -667,9 +753,11 @@ interface: Serial0/0/0
       spi: 0x28A54D34(681921844)
 ```
 
-R3 shows the mirror image, with one difference that matters: `#send errors 1`. I explain what that means in [[#6.3 Test 3 - Is branch-to-HQ traffic really encrypted|Test 3]].
+R3 shows the mirror image, with one difference that matters: `#send errors 1`. I explain what that means in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
 
-> [!info] Why this matters for security - which piece does which job
+> [!NOTE]
+> **Why this matters for security - which piece does which job**
+>
 >
 > | Goal | Mechanism in this tunnel |
 > |---|---|
@@ -682,7 +770,9 @@ R3 shows the mirror image, with one difference that matters: `#send errors 1`. I
 >
 > **Is this crypto still current?** RFC 8247 (the IETF's guidance for IKEv2) rates DH group 5 as SHOULD NOT and HMAC-SHA1 as MUST- (still allowed, but on its way out). The lab brief used both. For a real network I'd use IKEv2, DH group 14 or 19+, SHA-256 or better, and a long random key or certificates.
 
-> [!faq]+ What are Diffie-Hellman and PFS?
+> [!TIP]
+> **What are Diffie-Hellman and PFS?**
+>
 > Diffie-Hellman (DH) lets two routers end up with the same secret key without ever sending the key itself. The classic picture is two people each mixing a secret paint colour into a shared colour and swapping the results - both end up with the same final colour, but anyone watching can't un-mix it. PFS (perfect forward secrecy) means a fresh DH exchange for each new set of keys, so one stolen key only unlocks one session, not every session before it.
 
 ### 5.7 HQ perimeter - ASA 5505
@@ -697,7 +787,9 @@ R3 shows the mirror image, with one difference that matters: `#send errors 1`. I
 - DHCP gives staff PCs addresses from .5 to .30, skipping the addresses already used by the gateway, switches and static PCs.
 - A default route to R1, PAT for the whole staff LAN, and ICMP inspection so staff pings get their replies.
 
-> [!faq]+ What are NAT and PAT?
+> [!TIP]
+> **What are NAT and PAT?**
+>
 > NAT swaps private addresses for public ones at the edge of the network. PAT is the many-to-one version: every staff PC shares the ASA's single outside address, and the ASA uses port numbers to remember which reply belongs to which PC. It's like an office switchboard - everyone shares one public phone number, and the receptionist knows which extension each call belongs to.
 
 ```cisco
@@ -742,14 +834,18 @@ policy-map global-policy
 service-policy global-policy global
 ```
 
-> [!note] Gap in my original write-up
+> [!NOTE]
+> **Gap in my original write-up**
+>
 > My original notes skipped the step that creates the ASA's RSA keys. SSH can't work without a key pair, so I've included it here (check it with `show crypto key mypubkey rsa`).
 
 **Evidence from my build:** after the OSPF fix in section 7, PC-C opened an SSH session to the ASA at 209.165.200.234 - the only source the ASA accepts for SSH.
 
 **Also worth checking:** `show route`, `show xlate` (after PC-A pings out, this shows the PAT translations) and `show dhcpd binding`.
 
-> [!info] Why this matters for security
+> [!NOTE]
+> **Why this matters for security**
+>
 > - **Security levels are trust levels:** traffic going from 100 down to 0 is allowed and tracked; traffic going from 0 up to 100 is blocked unless an ACL allows it. Think of water: it flows downhill on its own, but needs a pump to go uphill.
 > - **NAT is not a firewall rule**, but with PAT, outsiders have no direct way to reach a staff PC unless that PC started the conversation. It adds a layer of protection (defence in depth - like having a fence, a locked door *and* an alarm), but it doesn't replace proper rules.
 > - **ICMP inspection** (`inspect icmp`) lets the replies come back without opening ICMP to everyone outside.
@@ -761,10 +857,14 @@ service-policy global-policy global
 
 Next, I attacked my own build. Each test answers one question, using the Alexiou Principle from section 2.
 
-> [!warning] Lab only
+> [!WARNING]
+> **Lab only**
+>
 > I ran these attacks against my own Packet Tracer lab. Never test systems you don't own or don't have written permission to test - unauthorised testing can be a crime.
 
-> [!faq]+ What is MITRE ATT&CK?
+> [!TIP]
+> **What is MITRE ATT&CK?**
+>
 > It's a free catalogue of real attacker techniques, each with an ID such as T1110.001. Think of it as a dictionary of attacker "moves", so defenders everywhere can describe an attack in the same language.
 
 | # | Question | Simulated technique (ATT&CK) | Expected | Result |
@@ -776,7 +876,9 @@ Next, I attacked my own build. Each test answers one question, using the Alexiou
 
 ### 6.1 Test 1 - SSH brute force against R1
 
-> [!faq]+ What is a brute-force attack?
+> [!TIP]
+> **What is a brute-force attack?**
+>
 > It's guessing passwords over and over until one works - like trying every key on a giant key ring. Against a live login prompt, the device can fight back by slowing the attacker down, which is exactly what the login block does.
 
 1. **Question:** if an attacker gets onto a branch PC and tries to guess R1's admin password, does R1 stop them - and would we even know?
@@ -815,10 +917,12 @@ sequenceDiagram
     R1-->>A: Password prompt again
 ```
 
-> [!tip] Analyst notes
+> [!TIP]
+> **Analyst notes**
+>
 > - **Why PC-C?** It's the worst case. PC-C is the admin's PC, and after Phase 5 it's the only PC allowed to reach the login prompt at all. Security people call this "assume breach": plan as if an attacker is already inside - for example, after a phishing email lands on that exact PC.
 > - **The attacker guessed the username `admin`.** A default-looking username gives away half of the login. A less obvious admin username makes guessing harder.
-> - **Two gaps in the evidence:** the timestamps say 1993 (the router's clock was never set), and only *failed* logins are logged - if the fourth guess had worked, R1 would have said nothing. I fixed both in [[#8.2 Pack B - Finish the management-plane baseline|Pack B]] and [[#8.4 Pack D - Make the logs forensically useful|Pack D]].
+> - **Two gaps in the evidence:** the timestamps say 1993 (the router's clock was never set), and only *failed* logins are logged - if the fourth guess had worked, R1 would have said nothing. I fixed both in [Pack B](#82-pack-b---finish-the-management-plane-baseline) and [Pack D](#84-pack-d---make-the-logs-forensically-useful).
 
 ### 6.2 Test 2 - ICMP flood against the branch edge
 
@@ -838,7 +942,9 @@ sequenceDiagram
 - RiskRating 25 is low on Cisco's 0-100 scale. One alert on its own is just noise; twenty in a few seconds from the same source is a pattern worth a ticket.
 - Earlier, a ping from R2 to the branch gateway (192.168.30.1) was dropped with the same alert, so the IPS covers anything coming in through R3's WAN interface.
 
-> [!important] What this test does and doesn't prove
+> [!IMPORTANT]
+> **What this test does and doesn't prove**
+>
 > Signature 2004 fires on **every** ping, so this proves the IPS blocks ping-based scanning - not that it protects against a big flood (a denial-of-service, or DoS, attack, which tries to overwhelm something so real users can't use it). One ping or a million, the IPS treats each packet the same way, and a real flood would fill the internet link before R3 even saw it. It's the difference between hanging up on one prank caller and your phone line being jammed by thousands of calls at once. Real DoS protection happens further upstream (the ISP's DDoS protection) and through rate limiting.
 
 ### 6.3 Test 3 - Is branch-to-HQ traffic really encrypted
@@ -857,20 +963,26 @@ sequenceDiagram
 | 5 | `esp-aes 256 esp-sha-hmac`, `in use settings ={Tunnel, }`, `Status: ACTIVE` | R1, R3 | AES-256 confidentiality, HMAC-SHA integrity, whole original packet encapsulated |
 | 6 | Reply TTL 253 before the VPN, 254 after | PC-C | The inner packet no longer "sees" R2 - encapsulation visible from the endpoint |
 
-> [!faq]+ What is TTL?
+> [!TIP]
+> **What is TTL?**
+>
 > TTL (time to live) is a countdown number inside every packet. Each router the packet passes through takes 1 off, and if it reaches zero the packet is thrown away - that stops packets looping around forever. So the TTL you receive tells you how many routers the packet went through.
 
-> [!example] Why the TTL went up by one
+> [!NOTE]
+> **Why the TTL went up by one**
+>
 > This was my favourite discovery in the whole project. R1 sends its reply with TTL 255. **Before the VPN**, R2 and R3 each take 1 off, so PC-C sees 253. **After the VPN**, R1 puts the reply inside a new ESP packet - a new envelope with new addresses on it - and R2 only changes the TTL on the outside envelope. R3 opens the envelope and forwards the original packet (its TTL is still 255), taking 1 off, so PC-C sees 254. R2 has become invisible to the packet inside, which is exactly what tunnel mode is supposed to do.
 
-> [!note] Packet Tracer quirks
+> [!NOTE]
+> **Packet Tracer quirks**
+>
 > - `#pkts digest` and `#pkts verify` stay at 0, and the SA shows `replay detection support: N`, even with `esp-sha-hmac` set. On real IOS those counters go up as the integrity checks happen, so don't read 0 as "no integrity" in Packet Tracer.
 > - **How to see it with the course tool:** in Simulation mode, follow the packet across the R1-R2 link and compare its layers with the same ping before the VPN.
 > - **Side note:** Wireshark on an emulated link (GNS3 or Cisco CML) shows ESP packets with SPIs and sequence numbers, and a payload you can't read.
 
 ### 6.4 Test 4 - Does the ZPF block unsolicited inbound traffic
 
-I didn't run this one in the original build. The session table proves the firewall tracks conversations started from inside; it doesn't prove that conversations started from outside get dropped. A control you haven't tested is a control you're only *hoping* works. It's item 8 on the [[#8.5 Re-test checklist|re-test checklist]].
+I didn't run this one in the original build. The session table proves the firewall tracks conversations started from inside; it doesn't prove that conversations started from outside get dropped. A control you haven't tested is a control you're only *hoping* works. It's item 8 on the [re-test checklist](#85-re-test-checklist).
 
 ---
 
@@ -895,7 +1007,9 @@ router ospf 1
 
 G0/0 stays passive. SSH from PC-C to the ASA worked on the next try.
 
-> [!tip] Lessons
+> [!TIP]
+> **Lessons**
+>
 > - Check the layers from the bottom up before blaming a security control. A missing route can look exactly like a firewall block.
 > - `passive-interface` stops OSPF hellos, but it doesn't advertise anything by itself - the subnet still needs a `network` statement.
 > - A faster clue for next time: `show ip route` on R3 would have shown there was no route to 209.165.200.232/29.
@@ -906,7 +1020,7 @@ G0/0 stays passive. SSH from PC-C to the ASA worked on the next try.
 
 Once everything worked, I went back through every running-config, log and screenshot as if someone else had built it. A control that only exists in the plan isn't really a control.
 
-I've written every fix below, but I won't call any of them done until they pass the [[#8.5 Re-test checklist|re-test checklist]].
+I've written every fix below, but I won't call any of them done until they pass the [re-test checklist](#85-re-test-checklist).
 
 | ID | Gap found in review | Evidence | Risk | Fix |
 |---|---|---|---|---|
@@ -928,10 +1042,14 @@ I've written every fix below, but I won't call any of them done until they pass 
 
 **Decision:** port security on every user port (one "sticky" MAC address, `restrict` mode), BPDU guard to stop rogue switches, every unused port shut down and moved into a "black-hole" VLAN (an unused VLAN that goes nowhere - like moving empty rooms to a floor the lift doesn't stop at), VLAN 99 actually created, the trunk limited to only the VLANs it needs, and the same login protection the routers have.
 
-> [!faq]+ What are port security, sticky MACs and BPDU guard?
+> [!TIP]
+> **What are port security, sticky MACs and BPDU guard?**
+>
 > Every network card has a MAC address, a bit like a serial number. Port security lets a switch port accept only a set number of MAC addresses. "Sticky" means the port learns the first device it sees and remembers it - like a lock that learns the first key used in it and refuses every other key. BPDU guard shuts a port down if someone plugs a switch into it, because only switches send BPDUs (spanning tree messages).
 
-> [!note] Port numbers are assumed
+> [!NOTE]
+> **Port numbers are assumed**
+>
 > My original build notes only recorded the S1-S2 trunk on Fa0/1, so I've assumed the other ports below. Change them to match your own cabling.
 
 | Switch | Port | Connects to | Mode |
@@ -996,7 +1114,9 @@ line vty 0 15
  transport input ssh
 ```
 
-> [!info] Why `restrict` and not `shutdown`
+> [!NOTE]
+> **Why** `restrict` **and not** `shutdown`
+>
 > `shutdown` switches the port off completely (err-disabled). With the only IT Officer an hour away in Geelong, one person plugging in the wrong laptop could leave a staff PC offline for a day. `restrict` drops the stranger's traffic, keeps the real PC working, and counts and logs the violation so the SOC can follow up.
 
 **Verify:** `show port-security`, `show port-security interface FastEthernet0/2`, `show vlan brief` (unused ports should be listed in VLAN 999) and `show interfaces trunk` (allowed VLANs should be 1,99).
@@ -1005,7 +1125,9 @@ line vty 0 15
 
 **Fixes:** G-04, G-05, G-06, G-07.
 
-> [!faq]+ What is CDP?
+> [!TIP]
+> **What is CDP?**
+>
 > CDP (Cisco Discovery Protocol) is your device introducing itself to its neighbours: its name, model, software version and IP address. That's useful inside the office, but not something to tell strangers - like announcing your alarm system's brand to the whole street.
 
 ```cisco
@@ -1039,13 +1161,17 @@ interface Serial0/0/0
 crypto key generate rsa general-keys modulus 2048
 ```
 
-> [!info] Why each line is there
+> [!NOTE]
+> **Why each line is there**
+>
 > - **Password encryption:** `service password-encryption` only scrambles passwords (Type 7 can be reversed), but it stops someone reading them over your shoulder or in a backup file. The real protection is still `secret`.
 > - **The banner** never says "welcome". It states the rules and says activity is monitored. That discourages misuse, and it gives the firm legal footing to act on it.
 > - **Deny and log:** `deny any log` records every login attempt from a PC that isn't allowed - *before* a password prompt even appears.
 > - **Why a branch PC?** HQ staff reach R1 through the ASA's PAT, so every HQ PC shows up as the same address, 209.165.200.234. An ACL on R1 can't tell the IT Officer from the receptionist. That's one more reason management happens from PC-C for now, and from a dedicated management network later.
 
-> [!note] Trade-off I kept - quiet mode blocks everyone
+> [!NOTE]
+> **Trade-off I kept - quiet mode blocks everyone**
+>
 > During the 300-second block, `sl_def_acl` refuses everyone - including the real admin. So an attacker could trigger a lockout on purpose just to lock us out. Cisco's fix is `login quiet-mode access-class`, which lets one management PC keep logging in. But the PC I'd exempt is PC-C - the one an attacker is most likely to target - so exempting it would gut the protection. I kept the default and treat the console cable as the emergency way in (often called "break-glass" access).
 
 **Verify:** `show running-config` (no plain-text line passwords), SSH from R2 or PC-A should be refused before the password prompt and log `%SEC-6-IPACCESSLOGS`, and `show cdp neighbors` on R2 should no longer list R1 or R3.
@@ -1064,7 +1190,9 @@ Then clear the old tunnel agreements so they get rebuilt with the new setting: `
 
 **Verify:** `show crypto map` on both routers should show `PFS (Y/N): Y` and `DH group: group5`. If the tunnel comes up when PC-C pings first, both ends now agree.
 
-> [!tip] Lesson - config drift is a change-management problem
+> [!TIP]
+> **Lesson - config drift is a change-management problem**
+>
 > *Config drift* is when two things that should match slowly stop matching. The two ends of a tunnel are really one configuration split across two routers, so after every change, compare them side by side. Packet Tracer forgave this mismatch; real equipment wouldn't have, and the failure would only have shown up when the branch started the tunnel - the classic "the VPN only comes up from one side" support ticket.
 
 ### 8.4 Pack D - Make the logs forensically useful
@@ -1077,7 +1205,9 @@ Then clear the old tunnel agreements so they get rebuilt with the new setting: `
 - **Syslog**, so logs survive reboots and an intruder's `clear logging`.
 - **TFTP**, for dated configuration backups.
 
-> [!faq]+ What are NTP, syslog and TFTP?
+> [!TIP]
+> **What are NTP, syslog and TFTP?**
+>
 > **NTP** keeps every device's clock in sync - like everyone setting their watch from the same clock, so a timeline of events actually makes sense. **Syslog** sends a copy of each device's log messages to a central server - like keeping a copy of a diary somewhere safe, so an intruder can't tear pages out. **TFTP** is a very simple way to copy files; here it saves each config to the server as a "before" photo.
 
 I keep every device on UTC (world standard time). That way there are no daylight-saving jumps or repeated hours in a timeline, and the logs line up with ISP and cloud logs, which usually use UTC too.
@@ -1153,7 +1283,9 @@ service timestamps log datetime msec
 logging host 192.168.40.10
 ```
 
-> [!note] Why syslog is encrypted but NTP isn't
+> [!NOTE]
+> **Why syslog is encrypted but NTP isn't**
+>
 > Logs contain usernames, IP addresses and security events - all useful to an attacker planning their next move - so the branch's logs travel inside the tunnel. The time isn't secret, but it mustn't be faked, so NTP uses authentication instead (a shared key proves the time really came from SOC-SRV). If your Packet Tracer version rejects `logging source-interface`, the logs still arrive, just outside the tunnel; on real IOS this line is what keeps them inside it.
 
 **Configuration baseline** (exec mode, after every approved change):
@@ -1186,7 +1318,7 @@ Here's how I'll check that each fix actually works:
 
 ### 8.6 Residual risks and roadmap
 
-Residual risk is the risk that's left over after your fixes. These are the ones that are theoretically can be done, but I didn't fix in this round, mostly because each one is a bigger project:
+Residual risk is the risk that's left over after your fixes. These are the ones I know about but didn't fix in this round, mostly because each one is a bigger project:
 
 | Residual risk | Why it is not fixed here | Next step |
 |---|---|---|
@@ -1231,7 +1363,9 @@ Security+ also sorts controls by what they do. A compensating control (the last 
 
 ### 9.2 SOC - detection use cases
 
-> [!faq]+ What are a SOC and a SIEM?
+> [!TIP]
+> **What are a SOC and a SIEM?**
+>
 > A SOC (security operations centre) is the team that watches for attacks and responds to them. A SIEM is their main tool: it collects logs from everywhere, looks for patterns and raises alerts. If logs are puzzle pieces, the SIEM is the table where the SOC lays them out to see the whole picture.
 
 Every use case below relies on logs this build already produces (or will produce after Phase 5). IOS puts the severity in the message name: `SEC_LOGIN-1` is level 1 (alert), `IPS-4` is level 4 (warning) and `SEC_LOGIN-5` is level 5 (notice). A lower number means more urgent, so `logging trap informational` sends levels 0-6.
@@ -1246,7 +1380,9 @@ Every use case below relies on logs this build already produces (or will produce
 | Routing or tunnel instability | `OSPF-5-ADJCHG`, crypto session events | Adjacency or tunnel down for 5+ minutes in business hours | Availability incident: peer reachability, config drift |
 | Log source goes quiet | Any device | No messages from a device for 15+ minutes | Device down - or someone silenced it (ATT&CK T1070) |
 
-> [!warning] Low and slow beats a threshold
+> [!WARNING]
+> **Low and slow beats a threshold**
+>
 > The login block only trips at 3 failures in 30 seconds. An attacker who guesses twice, waits 31 seconds and repeats never trips it - that's more than 5,000 guesses a day. The router slows down the fast attacker; the SIEM, which looks at longer time windows, catches the slow one.
 
 **Illustrative** - this is the pattern the second use case alerts on once Packs B and D are in place (it's an example, not a capture from my build):
@@ -1259,7 +1395,9 @@ Nov  1 14:02:40.977: %SEC_LOGIN-5-LOGIN_SUCCESS: Login Success [user: admin] [So
 
 ### 9.3 DFIR - evidence on network devices
 
-> [!faq]+ What is DFIR?
+> [!TIP]
+> **What is DFIR?**
+>
 > DFIR stands for digital forensics and incident response: working out what happened during an attack (forensics) and dealing with it (incident response). A big part of it is collecting evidence without accidentally destroying it.
 
 **Order of volatility** (from RFC 3227) means collecting the evidence that disappears fastest first - like photographing footprints in the snow before they melt. On a Cisco router, work from the top of this table down, and never reboot a suspect device first - a reboot wipes everything in RAM.
@@ -1282,7 +1420,9 @@ Nov  1 14:02:40.977: %SEC_LOGIN-5-LOGIN_SUCCESS: Login Success [user: admin] [So
 | Who tried to reach the management plane? | Not recorded | ACL deny log |
 | What did the config look like before? | Only startup-config | Dated, hashed TFTP baselines |
 
-> [!tip] Corroboration beats a single artefact
+> [!TIP]
+> **Corroboration beats a single artefact**
+>
 > Test 3 didn't rely on one counter. A ping result on PC-C, the SA counters on two routers, matching SPIs and a TTL change all had to agree. Forensics works the same way: one artefact is a lead, but several independent artefacts that agree are evidence - like a detective wanting more than one witness.
 
 ### 9.4 MITRE ATT&CK coverage
@@ -1389,425 +1529,457 @@ If you're building something similar, these are the skills this project gave me 
 
 Here's each device's full configuration (as built, plus Phase 5), in case you want to rebuild the lab from scratch. The one-time steps where the device asks you questions (the licence and reload, and the IPS folder and signatures) are in sections 5.4 and 5.5. The boxes are folded - click one to open it.
 
-> [!example]- R1 - HQ edge router
-> ```cisco
-> hostname R1
-> ip domain-name redgum.internal
-> service password-encryption
-> service timestamps log datetime msec
-> service timestamps debug datetime msec
-> security passwords min-length 10
-> enable secret ciscoenapa55
-> username admin privilege 15 secret ciscoenapa55
-> !
-> aaa new-model
-> aaa authentication login default local enable
-> !
-> ! Prompts to replace an existing key pair - answer yes
-> crypto key generate rsa general-keys modulus 2048
-> ip ssh version 2
-> login block-for 300 attempts 3 within 30
-> login on-failure log
-> login on-success log
-> !
-> ntp authentication-key 1 md5 NTPpa55
-> ntp authenticate
-> ntp trusted-key 1
-> ntp server 192.168.40.10 key 1
-> logging buffered 16384
-> logging trap informational
-> logging host 192.168.40.10
-> !
-> ip access-list standard MGMT-ONLY
->  permit host 192.168.30.3
->  deny any log
-> access-list 101 permit ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255
-> access-list 101 permit ip 192.168.40.0 0.0.0.255 192.168.30.0 0.0.0.255
-> !
-> crypto isakmp policy 10
->  encryption aes 256
->  hash sha
->  authentication pre-share
->  group 5
->  lifetime 3600
-> crypto isakmp key ciscovpnpa55 address 23.23.23.1
-> crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
-> crypto map CMAP 10 ipsec-isakmp
->  set peer 23.23.23.1
->  set pfs group5
->  set transform-set VPN-SET
->  match address 101
-> !
-> interface GigabitEthernet0/0
->  ip address 209.165.200.233 255.255.255.248
->  no shutdown
-> interface GigabitEthernet0/1
->  ip address 192.168.40.1 255.255.255.0
->  no shutdown
-> interface Serial0/0/0
->  ip address 12.12.12.1 255.255.255.252
->  no cdp enable
->  crypto map CMAP
->  no shutdown
-> interface Loopback1
->  ip address 192.168.20.1 255.255.255.0
-> !
-> router ospf 1
->  passive-interface GigabitEthernet0/0
->  passive-interface GigabitEthernet0/1
->  network 12.12.12.0 0.0.0.3 area 0
->  network 192.168.20.0 0.0.0.255 area 0
->  network 192.168.40.0 0.0.0.255 area 0
->  network 209.165.200.232 0.0.0.7 area 0
-> !
-> banner motd #
-> Authorised access only. Activity on this device is logged and monitored.
-> Disconnect now if you are not an authorised Redgum administrator.
-> #
-> line console 0
->  exec-timeout 15 0
-> line vty 0 15
->  access-class MGMT-ONLY in
->  exec-timeout 5 0
->  transport input ssh
-> ```
+<details>
+<summary>R1 - HQ edge router</summary>
 
-> [!example]- R2 - ISP router (simulated Internet)
-> ```cisco
-> hostname R2
-> interface Serial0/0/0
->  ip address 12.12.12.2 255.255.255.252
->  no shutdown
-> interface Serial0/0/1
->  ip address 23.23.23.2 255.255.255.252
->  no shutdown
-> router ospf 1
->  network 12.12.12.0 0.0.0.3 area 0
->  network 23.23.23.0 0.0.0.3 area 0
-> ```
-> In the lab I also applied the 5.3 baseline to R2 for practice. In the scenario the ISP owns it.
+```cisco
+hostname R1
+ip domain-name redgum.internal
+service password-encryption
+service timestamps log datetime msec
+service timestamps debug datetime msec
+security passwords min-length 10
+enable secret ciscoenapa55
+username admin privilege 15 secret ciscoenapa55
+!
+aaa new-model
+aaa authentication login default local enable
+!
+! Prompts to replace an existing key pair - answer yes
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+login block-for 300 attempts 3 within 30
+login on-failure log
+login on-success log
+!
+ntp authentication-key 1 md5 NTPpa55
+ntp authenticate
+ntp trusted-key 1
+ntp server 192.168.40.10 key 1
+logging buffered 16384
+logging trap informational
+logging host 192.168.40.10
+!
+ip access-list standard MGMT-ONLY
+ permit host 192.168.30.3
+ deny any log
+access-list 101 permit ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255
+access-list 101 permit ip 192.168.40.0 0.0.0.255 192.168.30.0 0.0.0.255
+!
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 5
+ lifetime 3600
+crypto isakmp key ciscovpnpa55 address 23.23.23.1
+crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
+crypto map CMAP 10 ipsec-isakmp
+ set peer 23.23.23.1
+ set pfs group5
+ set transform-set VPN-SET
+ match address 101
+!
+interface GigabitEthernet0/0
+ ip address 209.165.200.233 255.255.255.248
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 192.168.40.1 255.255.255.0
+ no shutdown
+interface Serial0/0/0
+ ip address 12.12.12.1 255.255.255.252
+ no cdp enable
+ crypto map CMAP
+ no shutdown
+interface Loopback1
+ ip address 192.168.20.1 255.255.255.0
+!
+router ospf 1
+ passive-interface GigabitEthernet0/0
+ passive-interface GigabitEthernet0/1
+ network 12.12.12.0 0.0.0.3 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+ network 192.168.40.0 0.0.0.255 area 0
+ network 209.165.200.232 0.0.0.7 area 0
+!
+banner motd #
+Authorised access only. Activity on this device is logged and monitored.
+Disconnect now if you are not an authorised Redgum administrator.
+#
+line console 0
+ exec-timeout 15 0
+line vty 0 15
+ access-class MGMT-ONLY in
+ exec-timeout 5 0
+ transport input ssh
+```
 
-> [!example]- R3 - branch edge router
-> ```cisco
-> hostname R3
-> ip domain-name redgum.internal
-> service password-encryption
-> service timestamps log datetime msec
-> service timestamps debug datetime msec
-> security passwords min-length 10
-> enable secret ciscoenapa55
-> username admin privilege 15 secret ciscoenapa55
-> !
-> aaa new-model
-> aaa authentication login default local enable
-> !
-> ! Prompts to replace an existing key pair - answer yes
-> crypto key generate rsa general-keys modulus 2048
-> ip ssh version 2
-> login block-for 300 attempts 3 within 30
-> login on-failure log
-> login on-success log
-> !
-> ntp authentication-key 1 md5 NTPpa55
-> ntp authenticate
-> ntp trusted-key 1
-> ntp server 192.168.40.10 key 1
-> logging buffered 16384
-> logging trap informational
-> logging source-interface GigabitEthernet0/1
-> logging host 192.168.40.10
-> !
-> ip access-list standard MGMT-ONLY
->  permit host 192.168.30.3
->  deny any log
-> access-list 101 permit ip 192.168.30.0 0.0.0.255 192.168.20.0 0.0.0.255
-> access-list 101 permit ip 192.168.30.0 0.0.0.255 192.168.40.0 0.0.0.255
-> access-list 110 permit ip 192.168.30.0 0.0.0.255 any
-> access-list 110 deny ip any any
-> !
-> zone security IN-ZONE
-> zone security OUT-ZONE
-> class-map type inspect match-all INTERNAL-CLASS-MAP
->  match access-group 110
-> policy-map type inspect IN-2-OUT-PMAP
->  class type inspect INTERNAL-CLASS-MAP
->   inspect
-> zone-pair security IN-2-OUT-PAIR source IN-ZONE destination OUT-ZONE
->  service-policy type inspect IN-2-OUT-PMAP
-> !
-> ! Signature category and signature 2004 settings: see 5.5 (interactive)
-> ip ips config location flash:ipsdir
-> ip ips name IPS-RULE
-> !
-> crypto isakmp policy 10
->  encryption aes 256
->  hash sha
->  authentication pre-share
->  group 5
->  lifetime 3600
-> crypto isakmp key ciscovpnpa55 address 12.12.12.1
-> crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
-> crypto map CMAP 10 ipsec-isakmp
->  set peer 12.12.12.1
->  set pfs group5
->  set transform-set VPN-SET
->  match address 101
-> !
-> interface GigabitEthernet0/1
->  ip address 192.168.30.1 255.255.255.0
->  zone-member security IN-ZONE
->  no shutdown
-> interface Serial0/0/1
->  ip address 23.23.23.1 255.255.255.252
->  zone-member security OUT-ZONE
->  ip ips IPS-RULE in
->  no cdp enable
->  crypto map CMAP
->  no shutdown
-> !
-> router ospf 1
->  passive-interface GigabitEthernet0/1
->  network 23.23.23.0 0.0.0.3 area 0
->  network 192.168.30.0 0.0.0.255 area 0
-> !
-> banner motd #
-> Authorised access only. Activity on this device is logged and monitored.
-> Disconnect now if you are not an authorised Redgum administrator.
-> #
-> line console 0
->  exec-timeout 15 0
-> line vty 0 15
->  access-class MGMT-ONLY in
->  exec-timeout 5 0
->  transport input ssh
-> ```
+</details>
 
-> [!example]- S1 - HQ access switch
-> ```cisco
-> hostname S1
-> ip domain-name redgum.internal
-> service password-encryption
-> service timestamps log datetime msec
-> enable secret ciscoenapa55
-> username admin privilege 15 secret ciscoenapa55
-> crypto key generate rsa general-keys modulus 2048
-> ip ssh version 2
-> !
-> ntp authentication-key 1 md5 NTPpa55
-> ntp authenticate
-> ntp trusted-key 1
-> ntp server 192.168.40.10 key 1
-> logging host 192.168.40.10
-> !
-> vlan 99
->  name NATIVE-UNUSED
-> vlan 999
->  name BLACKHOLE
-> !
-> ip access-list standard MGMT-ONLY
->  permit host 192.168.10.2
->  deny any log
-> !
-> interface FastEthernet0/1
->  switchport mode trunk
->  switchport trunk native vlan 99
->  switchport trunk allowed vlan 1,99
->  switchport nonegotiate
-> interface FastEthernet0/2
->  switchport mode access
->  switchport port-security
->  switchport port-security maximum 1
->  switchport port-security mac-address sticky
->  switchport port-security violation restrict
->  spanning-tree portfast
->  spanning-tree bpduguard enable
-> interface range FastEthernet0/3 - 24 , GigabitEthernet0/1 - 2
->  switchport mode access
->  switchport access vlan 999
->  shutdown
-> interface Vlan1
->  ip address 192.168.10.11 255.255.255.0
->  no shutdown
-> ip default-gateway 192.168.10.1
-> !
-> banner motd #
-> Authorised access only. Activity on this device is logged and monitored.
-> Disconnect now if you are not an authorised Redgum administrator.
-> #
-> line console 0
->  login local
->  exec-timeout 15 0
-> line vty 0 15
->  access-class MGMT-ONLY in
->  login local
->  exec-timeout 5 0
->  transport input ssh
-> ```
+<details>
+<summary>R2 - ISP router (simulated Internet)</summary>
 
-> [!example]- S2 - HQ access switch (ASA uplink)
-> ```cisco
-> hostname S2
-> ip domain-name redgum.internal
-> service password-encryption
-> service timestamps log datetime msec
-> enable secret ciscoenapa55
-> username admin privilege 15 secret ciscoenapa55
-> crypto key generate rsa general-keys modulus 2048
-> ip ssh version 2
-> !
-> ntp authentication-key 1 md5 NTPpa55
-> ntp authenticate
-> ntp trusted-key 1
-> ntp server 192.168.40.10 key 1
-> logging host 192.168.40.10
-> !
-> vlan 99
->  name NATIVE-UNUSED
-> vlan 999
->  name BLACKHOLE
-> !
-> ip access-list standard MGMT-ONLY
->  permit host 192.168.10.2
->  deny any log
-> !
-> interface FastEthernet0/1
->  switchport mode trunk
->  switchport trunk native vlan 99
->  switchport trunk allowed vlan 1,99
->  switchport nonegotiate
-> interface FastEthernet0/2
->  switchport mode access
->  switchport port-security
->  switchport port-security maximum 1
->  switchport port-security mac-address sticky
->  switchport port-security violation restrict
->  spanning-tree portfast
->  spanning-tree bpduguard enable
-> interface FastEthernet0/24
->  switchport mode access
-> interface range FastEthernet0/3 - 23 , GigabitEthernet0/1 - 2
->  switchport mode access
->  switchport access vlan 999
->  shutdown
-> interface Vlan1
->  ip address 192.168.10.12 255.255.255.0
->  no shutdown
-> ip default-gateway 192.168.10.1
-> !
-> banner motd #
-> Authorised access only. Activity on this device is logged and monitored.
-> Disconnect now if you are not an authorised Redgum administrator.
-> #
-> line console 0
->  login local
->  exec-timeout 15 0
-> line vty 0 15
->  access-class MGMT-ONLY in
->  login local
->  exec-timeout 5 0
->  transport input ssh
-> ```
+```cisco
+hostname R2
+interface Serial0/0/0
+ ip address 12.12.12.2 255.255.255.252
+ no shutdown
+interface Serial0/0/1
+ ip address 23.23.23.2 255.255.255.252
+ no shutdown
+router ospf 1
+ network 12.12.12.0 0.0.0.3 area 0
+ network 23.23.23.0 0.0.0.3 area 0
+```
+In the lab I also applied the 5.3 baseline to R2 for practice. In the scenario the ISP owns it.
 
-> [!example]- S3 - branch switch
-> ```cisco
-> hostname S3
-> ip domain-name redgum.internal
-> service password-encryption
-> service timestamps log datetime msec
-> enable secret ciscoenapa55
-> username admin privilege 15 secret ciscoenapa55
-> crypto key generate rsa general-keys modulus 2048
-> ip ssh version 2
-> !
-> ntp authentication-key 1 md5 NTPpa55
-> ntp authenticate
-> ntp trusted-key 1
-> ntp server 192.168.40.10 key 1
-> logging host 192.168.40.10
-> !
-> vlan 999
->  name BLACKHOLE
-> !
-> ip access-list standard MGMT-ONLY
->  permit host 192.168.30.3
->  deny any log
-> !
-> interface FastEthernet0/1
->  switchport mode access
-> interface FastEthernet0/2
->  switchport mode access
->  switchport port-security
->  switchport port-security maximum 1
->  switchport port-security mac-address sticky
->  switchport port-security violation restrict
->  spanning-tree portfast
->  spanning-tree bpduguard enable
-> interface range FastEthernet0/3 - 24 , GigabitEthernet0/1 - 2
->  switchport mode access
->  switchport access vlan 999
->  shutdown
-> interface Vlan1
->  ip address 192.168.30.11 255.255.255.0
->  no shutdown
-> ip default-gateway 192.168.30.1
-> !
-> banner motd #
-> Authorised access only. Activity on this device is logged and monitored.
-> Disconnect now if you are not an authorised Redgum administrator.
-> #
-> line console 0
->  login local
->  exec-timeout 15 0
-> line vty 0 15
->  access-class MGMT-ONLY in
->  login local
->  exec-timeout 5 0
->  transport input ssh
-> ```
+</details>
 
-> [!example]- CCNAS-ASA - HQ firewall
-> ```cisco
-> interface Vlan1
->  nameif INSIDE
->  security-level 100
->  ip address 192.168.10.1 255.255.255.0
-> interface Vlan2
->  nameif OUTSIDE
->  security-level 0
->  no ip address dhcp
->  ip address 209.165.200.234 255.255.255.248
-> !
-> hostname CCNAS-ASA
-> domain-name redgum.internal
-> enable password ciscoenapa55
-> username admin password adminpa55
-> aaa authentication ssh console LOCAL
-> crypto key generate rsa modulus 1024
-> ssh 192.168.30.3 255.255.255.255 OUTSIDE
-> ssh timeout 10
-> !
-> dhcpd address 192.168.10.5-192.168.10.30 INSIDE
-> dhcpd enable INSIDE
-> !
-> route OUTSIDE 0.0.0.0 0.0.0.0 209.165.200.233
-> !
-> object network INSIDE-NET
->  subnet 192.168.10.0 255.255.255.0
->  nat (INSIDE,OUTSIDE) dynamic interface
-> !
-> class-map inspection_default
->  match default-inspection-traffic
-> policy-map global-policy
->  class inspection_default
->   inspect icmp
-> service-policy global-policy global
-> ```
+<details>
+<summary>R3 - branch edge router</summary>
 
-> [!example]- SOC-SRV - Server-PT settings
-> - **IP:** 192.168.40.10 / 255.255.255.0, gateway 192.168.40.1, connected to R1 G0/1
-> - **SYSLOG:** on
-> - **NTP:** on, authentication enabled, key 1, password `NTPpa55`
-> - **TFTP:** on
+```cisco
+hostname R3
+ip domain-name redgum.internal
+service password-encryption
+service timestamps log datetime msec
+service timestamps debug datetime msec
+security passwords min-length 10
+enable secret ciscoenapa55
+username admin privilege 15 secret ciscoenapa55
+!
+aaa new-model
+aaa authentication login default local enable
+!
+! Prompts to replace an existing key pair - answer yes
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+login block-for 300 attempts 3 within 30
+login on-failure log
+login on-success log
+!
+ntp authentication-key 1 md5 NTPpa55
+ntp authenticate
+ntp trusted-key 1
+ntp server 192.168.40.10 key 1
+logging buffered 16384
+logging trap informational
+logging source-interface GigabitEthernet0/1
+logging host 192.168.40.10
+!
+ip access-list standard MGMT-ONLY
+ permit host 192.168.30.3
+ deny any log
+access-list 101 permit ip 192.168.30.0 0.0.0.255 192.168.20.0 0.0.0.255
+access-list 101 permit ip 192.168.30.0 0.0.0.255 192.168.40.0 0.0.0.255
+access-list 110 permit ip 192.168.30.0 0.0.0.255 any
+access-list 110 deny ip any any
+!
+zone security IN-ZONE
+zone security OUT-ZONE
+class-map type inspect match-all INTERNAL-CLASS-MAP
+ match access-group 110
+policy-map type inspect IN-2-OUT-PMAP
+ class type inspect INTERNAL-CLASS-MAP
+  inspect
+zone-pair security IN-2-OUT-PAIR source IN-ZONE destination OUT-ZONE
+ service-policy type inspect IN-2-OUT-PMAP
+!
+! Signature category and signature 2004 settings: see 5.5 (interactive)
+ip ips config location flash:ipsdir
+ip ips name IPS-RULE
+!
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 5
+ lifetime 3600
+crypto isakmp key ciscovpnpa55 address 12.12.12.1
+crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
+crypto map CMAP 10 ipsec-isakmp
+ set peer 12.12.12.1
+ set pfs group5
+ set transform-set VPN-SET
+ match address 101
+!
+interface GigabitEthernet0/1
+ ip address 192.168.30.1 255.255.255.0
+ zone-member security IN-ZONE
+ no shutdown
+interface Serial0/0/1
+ ip address 23.23.23.1 255.255.255.252
+ zone-member security OUT-ZONE
+ ip ips IPS-RULE in
+ no cdp enable
+ crypto map CMAP
+ no shutdown
+!
+router ospf 1
+ passive-interface GigabitEthernet0/1
+ network 23.23.23.0 0.0.0.3 area 0
+ network 192.168.30.0 0.0.0.255 area 0
+!
+banner motd #
+Authorised access only. Activity on this device is logged and monitored.
+Disconnect now if you are not an authorised Redgum administrator.
+#
+line console 0
+ exec-timeout 15 0
+line vty 0 15
+ access-class MGMT-ONLY in
+ exec-timeout 5 0
+ transport input ssh
+```
+
+</details>
+
+<details>
+<summary>S1 - HQ access switch</summary>
+
+```cisco
+hostname S1
+ip domain-name redgum.internal
+service password-encryption
+service timestamps log datetime msec
+enable secret ciscoenapa55
+username admin privilege 15 secret ciscoenapa55
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+!
+ntp authentication-key 1 md5 NTPpa55
+ntp authenticate
+ntp trusted-key 1
+ntp server 192.168.40.10 key 1
+logging host 192.168.40.10
+!
+vlan 99
+ name NATIVE-UNUSED
+vlan 999
+ name BLACKHOLE
+!
+ip access-list standard MGMT-ONLY
+ permit host 192.168.10.2
+ deny any log
+!
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 1,99
+ switchport nonegotiate
+interface FastEthernet0/2
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+interface range FastEthernet0/3 - 24 , GigabitEthernet0/1 - 2
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+interface Vlan1
+ ip address 192.168.10.11 255.255.255.0
+ no shutdown
+ip default-gateway 192.168.10.1
+!
+banner motd #
+Authorised access only. Activity on this device is logged and monitored.
+Disconnect now if you are not an authorised Redgum administrator.
+#
+line console 0
+ login local
+ exec-timeout 15 0
+line vty 0 15
+ access-class MGMT-ONLY in
+ login local
+ exec-timeout 5 0
+ transport input ssh
+```
+
+</details>
+
+<details>
+<summary>S2 - HQ access switch (ASA uplink)</summary>
+
+```cisco
+hostname S2
+ip domain-name redgum.internal
+service password-encryption
+service timestamps log datetime msec
+enable secret ciscoenapa55
+username admin privilege 15 secret ciscoenapa55
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+!
+ntp authentication-key 1 md5 NTPpa55
+ntp authenticate
+ntp trusted-key 1
+ntp server 192.168.40.10 key 1
+logging host 192.168.40.10
+!
+vlan 99
+ name NATIVE-UNUSED
+vlan 999
+ name BLACKHOLE
+!
+ip access-list standard MGMT-ONLY
+ permit host 192.168.10.2
+ deny any log
+!
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 1,99
+ switchport nonegotiate
+interface FastEthernet0/2
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+interface FastEthernet0/24
+ switchport mode access
+interface range FastEthernet0/3 - 23 , GigabitEthernet0/1 - 2
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+interface Vlan1
+ ip address 192.168.10.12 255.255.255.0
+ no shutdown
+ip default-gateway 192.168.10.1
+!
+banner motd #
+Authorised access only. Activity on this device is logged and monitored.
+Disconnect now if you are not an authorised Redgum administrator.
+#
+line console 0
+ login local
+ exec-timeout 15 0
+line vty 0 15
+ access-class MGMT-ONLY in
+ login local
+ exec-timeout 5 0
+ transport input ssh
+```
+
+</details>
+
+<details>
+<summary>S3 - branch switch</summary>
+
+```cisco
+hostname S3
+ip domain-name redgum.internal
+service password-encryption
+service timestamps log datetime msec
+enable secret ciscoenapa55
+username admin privilege 15 secret ciscoenapa55
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+!
+ntp authentication-key 1 md5 NTPpa55
+ntp authenticate
+ntp trusted-key 1
+ntp server 192.168.40.10 key 1
+logging host 192.168.40.10
+!
+vlan 999
+ name BLACKHOLE
+!
+ip access-list standard MGMT-ONLY
+ permit host 192.168.30.3
+ deny any log
+!
+interface FastEthernet0/1
+ switchport mode access
+interface FastEthernet0/2
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+interface range FastEthernet0/3 - 24 , GigabitEthernet0/1 - 2
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+interface Vlan1
+ ip address 192.168.30.11 255.255.255.0
+ no shutdown
+ip default-gateway 192.168.30.1
+!
+banner motd #
+Authorised access only. Activity on this device is logged and monitored.
+Disconnect now if you are not an authorised Redgum administrator.
+#
+line console 0
+ login local
+ exec-timeout 15 0
+line vty 0 15
+ access-class MGMT-ONLY in
+ login local
+ exec-timeout 5 0
+ transport input ssh
+```
+
+</details>
+
+<details>
+<summary>CCNAS-ASA - HQ firewall</summary>
+
+```cisco
+interface Vlan1
+ nameif INSIDE
+ security-level 100
+ ip address 192.168.10.1 255.255.255.0
+interface Vlan2
+ nameif OUTSIDE
+ security-level 0
+ no ip address dhcp
+ ip address 209.165.200.234 255.255.255.248
+!
+hostname CCNAS-ASA
+domain-name redgum.internal
+enable password ciscoenapa55
+username admin password adminpa55
+aaa authentication ssh console LOCAL
+crypto key generate rsa modulus 1024
+ssh 192.168.30.3 255.255.255.255 OUTSIDE
+ssh timeout 10
+!
+dhcpd address 192.168.10.5-192.168.10.30 INSIDE
+dhcpd enable INSIDE
+!
+route OUTSIDE 0.0.0.0 0.0.0.0 209.165.200.233
+!
+object network INSIDE-NET
+ subnet 192.168.10.0 255.255.255.0
+ nat (INSIDE,OUTSIDE) dynamic interface
+!
+class-map inspection_default
+ match default-inspection-traffic
+policy-map global-policy
+ class inspection_default
+  inspect icmp
+service-policy global-policy global
+```
+
+</details>
+
+<details>
+<summary>SOC-SRV - Server-PT settings</summary>
+
+- **IP:** 192.168.40.10 / 255.255.255.0, gateway 192.168.40.1, connected to R1 G0/1
+- **SYSLOG:** on
+- **NTP:** on, authentication enabled, key 1, password `NTPpa55`
+- **TFTP:** on
+
+</details>
 
 ---
 
