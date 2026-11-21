@@ -249,7 +249,7 @@ This is the basic yet important step. I built basic connectivity first (because 
 
 
 ```cisco
-! ===== R1 =====
+! ===== R1 (MELB) =====
 hostname R1
 interface GigabitEthernet0/0
  ip address 209.165.200.233 255.255.255.248
@@ -285,7 +285,7 @@ router ospf 1
 ![R2 CONFIG](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS4.png)
 
 ```cisco
-! ===== R3 =====
+! ===== R3 (GEELONG) =====
 hostname R3
 interface GigabitEthernet0/1
  ip address 192.168.30.1 255.255.255.0
