@@ -330,7 +330,7 @@ router ospf 1
 > [!TIP]
 > **What is DTP?**
 >
-> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. Handy - but an attacker's laptop can answer "yes".
+> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. It is smart, but an attacker's laptop can answer "yes".
 
 **Decision:** set the trunk manually, turn DTP off and move the native VLAN to an unused VLAN (99). I also gave each switch a management IP and default gateway, so it can be managed (and later send logs) across subnets.
 
@@ -346,7 +346,8 @@ interface Vlan1
  no shutdown
 ip default-gateway 192.168.10.1
 ```
-
+![S1 Config ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS9.png)
+![S2 Config ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS10.png)
 ```cisco
 ! ===== S3 =====
 hostname S3
@@ -355,19 +356,13 @@ interface Vlan1
  no shutdown
 ip default-gateway 192.168.30.1
 ```
+![S3 Config ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS11.png)
 
 **Evidence from my build:** `show interfaces trunk` on S1 and S2:
 
-```text
-Port        Mode         Encapsulation  Status        Native vlan
-Fa0/1       on           802.1q         trunking      99
+![Trunk ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS7.png)
 
-Port        Vlans allowed on trunk
-Fa0/1       1-1005
-
-Port        Vlans allowed and active in management domain
-Fa0/1       1
-```
+![Trunk ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS8.png)
 
 > [!WARNING]
 > **Spotted in review**
