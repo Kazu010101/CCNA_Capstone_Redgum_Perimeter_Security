@@ -303,7 +303,13 @@ router ospf 1
 **Evidence from my build**
 
 - Pings between all three routers: `Success rate is 100 percent (5/5)` in every direction.
-- PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind - it becomes important in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
+
+![R1 ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS12.png)
+![R2 ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS13.png)
+![R3 ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS14.png)
+
+- PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind as it becomes important in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
+![PC-C ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS15.png)
 
 **Also worth checking:** `show ip ospf neighbor` (look for FULL, which means two routers have fully shared their maps) and `show ip route ospf` (the routes learned through OSPF).
 
