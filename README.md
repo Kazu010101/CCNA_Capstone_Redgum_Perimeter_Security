@@ -150,9 +150,9 @@ flowchart LR
     E -.->|"re-test"| D
 ```
 
-I treated this like a small real-world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
+Let's treat this like a small real-world job: look at what's already there, plan the fixes (and what each one costs), build and check each one, attack the finished network, then review it as if someone else had built it.
 
-To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop me from poking around randomly - like a detective deciding what they're asking before collecting clues:
+To keep my testing and investigating focused, I used the **Alexiou Principle**. It's four questions that stop me from poking around randomly:
 
 1. What question am I trying to answer?
 2. What data do I need to answer it?
@@ -189,7 +189,7 @@ The CIA column shows which part of the CIA triad each problem puts at risk. Seve
 
 ## 4. Phase 2 - Design
 
-For each problem I picked a control - a fix or a protection. The last column uses Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
+For each problem I picked a control, which is a fix or a protection. The last column uses CompTia Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
 
 | Finding | Control | Device(s) | Security+ control type |
 |---|---|---|---|
@@ -208,9 +208,9 @@ For each problem I picked a control - a fix or a protection. The last column use
 
 A trade-off is what you give up to get something else. Here's what I chose, and why:
 
-- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One box does it all, and the firm doesn't have to buy anything.
-- **Site-to-site VPN, not remote-access VPN.** A site-to-site VPN connects two whole offices; a remote-access VPN connects one person's laptop. The whole branch needs HQ all day, so encrypting between the two routers means no VPN software on every PC.
-- **Local AAA, not RADIUS or TACACS+.** RADIUS and TACACS+ are central login servers, and the firm doesn't have one yet. Local AAA (accounts stored on each device) still gives everyone a named login and a lockout. The downside I'm accepting: accounts live separately on every device, and there's no MFA (see the roadmap).
+- **Zone-based firewall on R3, not a second ASA.** The branch router (a 1941 with the securityk9 licence) can already do firewalling, IPS and VPN. One box does it all, and the firm doesn't have to buy anything, which is perfect because in this scenario, the company has no budget.
+- **Site-to-site VPN, not remote-access VPN.** A site-to-site VPN connects two whole offices; a remote-access VPN connects one person's laptop. The whole branch needs HQ all day, so encrypting between the two routers means no VPN software on every PC (another less operational expenditure).
+- **Local AAA, not RADIUS or TACACS+.** RADIUS and TACACS+ are central login servers, and the firm doesn't have one yet. Local AAA (accounts stored on each device) still gives everyone a named login and a lockout. The downside for this scenario: accounts live separately on every device, and there's no MFA (see the roadmap).
 - **The IPS only checks incoming WAN traffic.** That's where untrusted traffic comes in, and checking just one direction stops a small router from working too hard.
 - **PAT on the ASA.** It hides internal addresses and lets every staff PC share one outside address (more on PAT in 5.7).
 - **ASA management from one PC only.** The IT Officer works from Geelong, so SSH to the ASA is allowed from PC-C and nowhere else. This is the idea of *least privilege*: give only the access that's actually needed.
@@ -219,12 +219,12 @@ A trade-off is what you give up to get something else. Here's what I chose, and 
 
 ## 5. Phase 3 - Build and harden
 
-Order matters here. I built basic connectivity first (you can't test a security control on a network that doesn't route), then the switches, then device logins, then the branch's protection, then the VPN, and finally the HQ firewall.
+This is the basic yet important step. I built basic connectivity first (because you can't test a security control on a network that doesn't route), then the switches, then device logins, then the branch's protection, then the VPN, and finally the HQ firewall.
 
 > [!TIP]
 > **What does "harden" mean?**
 >
-> Hardening means removing the easy ways in: changing defaults, adding passwords and turning off things you don't use. It's like securing a house - lock the doors, shut the windows you never open, and don't leave a key under the mat.
+> Hardening means removing the easy ways in: changing defaults, adding passwords and turning off things you don't use. It's like securing a house where you lock the doors, shut the windows you never open, and don't leave a key under the mat.
 
 > [!NOTE]
 > **How each control is written up**
@@ -247,6 +247,7 @@ Order matters here. I built basic connectivity first (you can't test a security 
 >
 > OSPF routers find each other by sending small "hello" messages. A passive interface still puts its network on the shared map, but stops sending hellos out of that port, so nothing on that side can join the conversation. It's like putting your street on the map without inviting strangers on that street to help draw it.
 
+
 ```cisco
 ! ===== R1 =====
 hostname R1
@@ -265,6 +266,8 @@ router ospf 1
  network 209.165.200.232 0.0.0.7 area 0
  passive-interface GigabitEthernet0/0
 ```
+![R1 CONFIG](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS2.png)
+
 
 ```cisco
 ! ===== R2 (ISP) =====
@@ -279,6 +282,7 @@ router ospf 1
  network 12.12.12.0 0.0.0.3 area 0
  network 23.23.23.0 0.0.0.3 area 0
 ```
+![R2 CONFIG](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS4.png)
 
 ```cisco
 ! ===== R3 =====
@@ -294,6 +298,7 @@ router ospf 1
  network 192.168.30.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/1
 ```
+![R3 CONFIG](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS6.png)
 
 **Evidence from my build**
 
