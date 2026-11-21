@@ -99,43 +99,13 @@ Here's the part each lab device plays in the story:
 | S3 (2960) | Branch switch | Branch LAN |
 | PC-C | IT Officer's admin workstation | The only host allowed to manage the ASA |
 
-### Topology
+### Network Topology
 
-How to read it: solid lines are cables, and the dashed line between R1 and R3 is the VPN tunnel. The tunnel's traffic still physically travels through R2, but R2 can't read it.
+There is a VPN tunnel between R1 and R3. The tunnel's traffic still physically travels through R2 (the internet), but R2 can't read it.
 
-```mermaid
-flowchart TB
-    subgraph HQ["HQ - Melbourne CBD"]
-        SRV[("HQ server segment<br/>Lo1 192.168.20.0/24")]
-        R1["R1 - HQ edge router"]
-        ASA{{"CCNAS-ASA 5505<br/>OUTSIDE .234 sec 0<br/>INSIDE .1 sec 100"}}
-        S2["S2<br/>192.168.10.12"]
-        S1["S1<br/>192.168.10.11"]
-        PCA["PC-A<br/>192.168.10.2"]
-        PCB["PC-B<br/>192.168.10.3"]
-    end
-    subgraph NET["Internet - untrusted"]
-        R2["R2 - ISP router"]
-    end
-    subgraph BR["Branch - Geelong"]
-        R3["R3 - branch edge router<br/>ZPF + IPS"]
-        S3["S3<br/>192.168.30.11"]
-        PCC["PC-C 192.168.30.3<br/>IT admin workstation"]
-    end
-    SRV --- R1
-    R1 ---|"G0/0 - 209.165.200.232/29"| ASA
-    ASA ---|"E0/1 - 192.168.10.0/24"| S2
-    S2 ---|"Fa0/1 trunk - native VLAN 99"| S1
-    S1 --- PCA
-    S2 --- PCB
-    R1 ---|"S0/0/0 - 12.12.12.0/30"| R2
-    R2 ---|"23.23.23.0/30 - S0/0/1"| R3
-    R3 ---|"G0/1 - 192.168.30.0/24"| S3
-    S3 --- PCC
-    R1 -.-|"IPsec site-to-site VPN - AES-256"| R3
-```
+![Redgum's topology screenshot](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/Redgum's%20Network%20Topology.png)
 
-### Addressing
+### IP Addressing
 
 | Device | Interface | IP address | Mask | Gateway |
 |---|---|---|---|---|
