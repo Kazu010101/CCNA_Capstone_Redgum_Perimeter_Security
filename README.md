@@ -538,6 +538,8 @@ PC-C's ping created a tracked session (`SIS_OPEN`). That entry in the firewall's
 
 **Decision:** Cisco IOS IPS, checking traffic coming in on S0/0/1 (the WAN side). It's signature-based, which means it looks for known attack patterns. I started small on purpose: retire (switch off) every signature group, switch the `ios_ips basic` group back on, then enable signature 2004 (ICMP Echo Request - the message a normal ping sends) with **alert + drop**. The goal is to make the branch invisible to ping sweeps (an attacker pinging a whole range of addresses to see who answers; it is like knocking on every door in a street to see who's home) and to stop ping floods at the door. Packet Tracer already keeps the signature files in flash, so I didn't need to import a key.
 
+R3 Configuration:
+
 ```text
 R3# mkdir ipsdir
 Create directory filename [ipsdir]? <Enter>
@@ -575,35 +577,14 @@ Do you want to accept these changes? [confirm] <Enter>
 
 ![show ip ips all](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%2017.png)
 
-```text
-IPS Signature File Configuration Status
-    Configured Config Locations: flash:ipsdir
-IPS Syslog and SDEE Notification Status
-    Event notification through syslog is enabled
-    Event notification through SDEE is enabled
-IPS Signature Status
-    Total Active Signatures: 1
-IPS Packet Scanning and Interface Status
-    IPS Rule Configuration
-      IPS name IPS-RULE
-    IPS fail closed is disabled
-    Interface Configuration
-      Interface Serial0/0/1
-        Inbound IPS rule is IPS-RULE
-IPS Category CLI Configuration:
-    Category all
-        Retire: True
-    Category ios_ips basic
-        Retire: False
-```
 
 > [!NOTE]
 > **Why this matters for security**
 >
 > - **Signature-based** detection looks for known patterns - like a bouncer with photos of people who are banned. **Anomaly-based** detection flags anything unusual compared with normal behaviour - like a bouncer who notices someone acting strangely.
 > - **IPS vs IDS:** this IPS sits inline (in the path), so it can drop packets (`deny-packet-inline`). An IDS can only alert.
-> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut - fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during tax season, but it should be a written-down decision, not a default nobody noticed.
-> - **Tuning:** blocking every ping also stops ping-based monitoring tools from checking that R3 is alive. A SOC would tune this - adjusting the rules so they block attacks without breaking normal work.
+> - **Fail-open vs fail-closed:** `IPS fail closed is disabled` means fail-open: if the IPS engine breaks, traffic keeps flowing without being checked. Think of an electronic door lock in a power cut - fail-open unlocks so people can still move around; fail-closed stays locked. Here availability wins over security. That's reasonable for a branch during busy tax season, but it should be a written-down decision, not a default nobody noticed.
+> - **Tuning:** blocking every ping also stops ping-based monitoring tools from checking that R3 is alive. Later, A SOC would tune this - adjusting the rules so they block attacks without breaking normal work.
 
 ### 5.6 Site-to-site IPsec VPN between R1 and R3
 
@@ -614,7 +595,7 @@ IPS Category CLI Configuration:
 >
 > A VPN builds a private, encrypted tunnel across a network you don't trust. IPsec is the set of protocols doing the encrypting and checking here. It's like putting your letters in a locked box before handing them to the public post: the postie still carries them, but can't read them.
 
-**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic" - the traffic that should go through the tunnel - is the HQ server segment talking to the branch LAN (ACL 101).
+**Decision:** a site-to-site IPsec tunnel between R1 and R3, set up with a crypto map using IKEv1 (also called ISAKMP). "Interesting traffic", which is the traffic that should go through the tunnel, is the HQ server segment talking to the branch LAN (ACL 101).
 
 > [!TIP]
 > **What are IKE Phase 1 and Phase 2?**
