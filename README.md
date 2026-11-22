@@ -580,10 +580,13 @@ R3(config-sigdef)# exit
 Do you want to accept these changes? [confirm] <Enter>
 ```
 
-**Evidence from my build:** `show ip ips all` (excerpt):
+**Evidence from my build:** `show ip ips all`:
 
 ![show ip ips all](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%2017.png)
 
+- A working IPS on R3 as signified by the blocking of ping coming from R2, and generation of IPS-blocking logs on R3.
+- 
+![R2 ping block](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS18.png)
 
 > [!NOTE]
 > **Why this matters for security**
@@ -615,6 +618,8 @@ Do you want to accept these changes? [confirm] <Enter>
 | **Negotiated here** | AES-256, SHA, pre-shared key, DH group 5, lifetime 3600 s | Transform set VPN-SET (ESP AES-256 + ESP SHA-HMAC), PFS group 5, proxy IDs from ACL 101 |
 | **Result** | One bidirectional ISAKMP SA | Two one-way IPsec SAs, each with its own SPI |
 | **Verify with** | `show crypto isakmp sa` | `show crypto ipsec sa` |
+
+![show crypto ipsec](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20show%20crypto%20ipsec%20sa.png)
 
 ```mermaid
 sequenceDiagram
