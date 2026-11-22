@@ -128,7 +128,7 @@ There is a VPN tunnel between R1 and R3. The tunnel's traffic still physically t
 > [!TIP]
 > **What do /24, /29 and /30 mean?**
 >
-> The number after the slash says how much of the address is the *network* part. Think of it like a street name (the network) and house numbers (the hosts): the bigger the slash number, the fewer houses on the street. A /30 has just 2 usable addresses, which is perfect for a link between two routers. A /29 has 6, and a /24 has 254. In networking, the slashing of the adderess is called CIDR notation. 
+> The number after the slash says how much of the address is the *network* part. Think of it like a street name (the network) and house numbers (the hosts): the bigger the slash number, the fewer houses on the street. A /30 has just 2 usable addresses, which is perfect for a link between two routers. A /29 has 6, and a /24 has 254. In networking, the slashing of IP addeesses is called CIDR notation. 
 
 > [!NOTE]
 > **Lab simplifications (things I simplified on purpose)**
@@ -167,7 +167,7 @@ To keep my testing and investigating focused, I used the **Alexiou Principle**. 
 
 | ID | Finding (as found) | What could go wrong | CIA | Severity |
 |---|---|---|---|---|
-| F-01 | Console and privileged EXEC unprotected on every router and switch | Anyone with a console cable owns the device | C I A | Critical |
+| F-01 | Console and privileged EXEC unprotected on every router and switch | Anyone with a console cable can plug in and control the device | C I A | Critical |
 | F-02 | No secure remote management - a console visit or cleartext Telnet were the only options | Credentials sniffed on the wire; slow incident response (the IT Officer drives between sites) | C A | High |
 | F-03 | No individual accounts, no AAA, no privilege model | Shared access and zero accountability | C I | High |
 | F-04 | No limit on login attempts (urgent the moment remote access is turned on) | Password guessing against the edge routers | C I | High |
@@ -189,7 +189,7 @@ The CIA column shows which part of the CIA triad each problem puts at risk. Seve
 
 ## 4. Phase 2 - Design
 
-For each problem I picked a control, which is a fix or a protection. The last column uses CompTia Security+ language: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
+For each problem I picked a control, which is a fix or a protection. The last column uses CompTia Security+ terminology: *technical* means it's done with technology (rather than a policy or a person), *preventive* means it stops something happening, and *detective* means it notices when something happens.
 
 | Finding | Control | Device(s) | Security+ control type |
 |---|---|---|---|
