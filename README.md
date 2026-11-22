@@ -309,13 +309,16 @@ router ospf 1
 ![R3 ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS14.png)
 
 - PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind as it becomes important in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
+  
 ![PC-C ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS15.png)
 
 - `show ip ospf neighbor` (look for FULL, which means two routers have fully shared their maps) and `show ip route ospf` (the routes learned through OSPF).
 
+![show ip ospf neighbor](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20show%20ip%20ospf%20and%20route.png)
+
 > [!NOTE]
 > **Why configuring passive interface matters for security**
->
+
 > A passive interface means a rogue device plugged into the branch LAN can't make friends with R3 over OSPF and feed it fake routes (an attack called route poisoning). The analogy: share the map, but don't talk to strangers.
 
 ### 5.2 Switching layer - management and trunk security
@@ -434,6 +437,10 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 **Evidence from my build:** R1's running-config shows `transport input ssh`, `security passwords min-length 10` and `login on-failure log`, and PC-C gets an SSH password prompt from R1. [Test 1](#61-test-1---ssh-brute-force-against-r1) proves the lockout works.
 
 **Also worth checking:** `show ip ssh` (it should say SSH is enabled, version 2.0) and `show login` (the lockout settings, and whether the router is blocking logins right now).
+
+![show ip ssh](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20show%20ip%20ssh.png)
+
+![show login](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20show%20login.png)
 
 > [!NOTE]
 > **Why this matters for security**
