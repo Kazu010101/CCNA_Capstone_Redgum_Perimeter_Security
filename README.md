@@ -1,7 +1,7 @@
 
-# Securing Redgum: a Two-Site Network Perimeter - CCNA Capstone
+# Securing Redgum Pty Ltd: a Two-Site Network Perimeter - CCNA Capstone
 
-*Redgum company is made up, but the lab is real. Every config, output and log line in this note comes from my own Cisco Packet Tracer build, unless I've marked it **Illustrative**.*
+*Redgum company is made up, but the lab is real. Every config, output and log line in this note comes from my own Cisco Packet Tracer build, unless I've marked it **Illustrative**. Since I did this capstone project on ongoing basis, I spotted some corrections required in the work after review. This is marked as **WORK_CORRECTION**. 
 
 > [!NOTE]
 > **At a glance**
@@ -311,12 +311,12 @@ router ospf 1
 - PC-C to the HQ server segment (192.168.20.1): 4/4 replies at **TTL=253**. Keep that number in mind as it becomes important in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
 ![PC-C ping ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS15.png)
 
-**Also worth checking:** `show ip ospf neighbor` (look for FULL, which means two routers have fully shared their maps) and `show ip route ospf` (the routes learned through OSPF).
+- `show ip ospf neighbor` (look for FULL, which means two routers have fully shared their maps) and `show ip route ospf` (the routes learned through OSPF).
 
 > [!NOTE]
-> **Why this matters for security**
+> **Why configuring passive interface matters for security**
 >
-> A passive interface means a rogue device plugged into the branch LAN can't make friends with R3 over OSPF and feed it fake routes (an attack called route poisoning). Share the map, but don't talk to strangers.
+> A passive interface means a rogue device plugged into the branch LAN can't make friends with R3 over OSPF and feed it fake routes (an attack called route poisoning). The analogy: share the map, but don't talk to strangers.
 
 ### 5.2 Switching layer - management and trunk security
 
@@ -330,7 +330,7 @@ router ospf 1
 > [!TIP]
 > **What is DTP?**
 >
-> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. It is smart, but an attacker's laptop can answer "yes".
+> DTP (Dynamic Trunking Protocol) lets a switch port ask the device at the other end, "shall we be a trunk?", and set itself up automatically. It is smart, but that means an attacker's laptop can answer "yes".
 
 **Decision:** set the trunk manually, turn DTP off and move the native VLAN to an unused VLAN (99). I also gave each switch a management IP and default gateway, so it can be managed (and later send logs) across subnets.
 
@@ -364,8 +364,8 @@ ip default-gateway 192.168.30.1
 
 ![Trunk ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS8.png)
 
-> [!WARNING]
-> **Spotted in review**
+> [! WORK CORRECTION]
+> **I Spotted this in review**
 >
 > The same output shows I never actually created VLAN 99, and the trunk still allows every VLAN from 1 to 1005. I fixed both in [Pack A](#81-pack-a---lock-down-the-access-layer).
 
