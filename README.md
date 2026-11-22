@@ -382,15 +382,15 @@ ip default-gateway 192.168.30.1
 > [!TIP]
 > **What is the management plane?**
 >
-> It's everything you use to manage the device itself: logging in through the console cable or remotely, typing commands and changing settings. Think of it as a building's control room - whoever gets in there controls everything.
+> It's everything you use to manage the device itself: logging in through the console cable or remotely, typing commands and changing settings. Think of it as a building's control room; whoever gets in there controls everything.
 
-**Decision:** protect every way in (console, VTY and privileged EXEC) with hashed secrets; allow SSH v2 only; make people log in with a named local account through AAA; log out idle sessions; and slow down and log failed logins. I applied this to R1 and R3 (and to R2 in the lab, where I first practised it).
+**Decision:** protect every way in (console, VTY and privileged EXEC) with hashed secrets; allow SSH v2 only; make people log in with a named local account through AAA; log out idle sessions; and slow down and log failed logins. I applied this to R1 and R3 (and to R2 in the packet tracer lab, where I first practised it).
 
 ```cisco
 ! ===== R1 (R3 identical apart from the hostname) =====
 hostname R1
 ! .internal was reserved by ICANN in 2024 for private networks
-ip domain-name redgum.internal
+ip domain-name koko.com
 !
 ! Hashed secrets: privileged EXEC plus a named admin account
 enable secret ciscoenapa55
@@ -438,10 +438,10 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 > [!NOTE]
 > **Why this matters for security**
 >
-> - **AAA:** Authentication (who are you?), Authorisation (what are you allowed to do?) and Accounting (what did you do?) - like showing ID at the front desk, the rooms your key card opens, and the visitor log. This build covers authentication. Accounting stays weak until Phase 5 adds central logging.
+> - **AAA:** Authentication (who are you?), Authorisation (what are you allowed to do?) and Accounting (what did you do?) are like showing ID at the front desk, the rooms your key card opens, and the visitor log. This build covers authentication. However, the Accounting  at this stage stays weak until Phase 5 adds central logging.
 > - **Secret vs password:** `secret` stores a hash; `password` stores plaintext, or reversible Type 7 at best. A hash is like a fingerprint of your password: the router can check it, but nobody can turn it back into the password. Type 7 is more like a simple code that anyone who knows the trick can undo. Always use `secret`.
 > - **Telnet vs SSH:** Telnet sends your password in cleartext, like writing it on a postcard - anyone handling it can read it (ATT&CK T1040, Network Sniffing). SSH is a sealed envelope.
-> - **Login block:** like a phone that locks for a while after too many wrong PINs. It turns an online guessing attack from thousands of tries per minute into 3 tries per 5 minutes.
+> - **Login block:** like a phone that locks for a while after too many wrong PINs. It slows down an online guessing attack from thousands of tries per minute into 3 tries per 5 minutes.
 
 ### 5.4 Branch perimeter - Zone-Based Policy Firewall on R3
 
@@ -456,15 +456,16 @@ Cisco uses privilege levels from 0 to 15 to decide which commands someone can ru
 > R3# copy running-config startup-config
 > R3# reload
 > ```
+![Security License ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS20.png)
 
 **Finding:** F-08. Anything on the internet side of R3 could open a connection straight into the branch LAN.
 
 > [!TIP]
 > **What are zones and a stateful firewall?**
 >
-> A zone is a group of interfaces with the same trust level - here, IN-ZONE (the branch LAN) and OUT-ZONE (towards the internet). A stateful firewall remembers who started each conversation. Picture a receptionist who knows you rang the plumber, so when the plumber calls back they're put straight through - but random callers aren't.
+> A zone is a group of interfaces with the same trust level - here, we have IN-ZONE (the branch LAN) and OUT-ZONE (towards the internet). A stateful firewall remembers who started each conversation. Picture a receptionist who knows you rang the plumber, so when the plumber calls back they're put straight through - but random callers aren't.
 
-**Decision:** two zones, one direction. Traffic from the branch LAN going out is inspected (that's the stateful part), so the replies are allowed back in automatically. There's no rule letting the outside start a conversation inwards, so new inbound sessions are dropped by default. I chose ZPF over plain ACLs because it's stateful, it blocks traffic between zones by default, and the policy reads almost like a sentence.
+**Decision:** two zones, one direction. Traffic from the branch LAN going out is inspected (that's the stateful part), so the replies are allowed back in automatically. There's no rule letting the outside start a conversation inwards, so new inbound sessions are dropped by default. I chose ZPF over plain ACLs because it's stateful, it blocks traffic between zones by default.
 
 ```mermaid
 flowchart LR
@@ -509,35 +510,21 @@ interface Serial0/0/1
 
 **Evidence from my build:** `show policy-map type inspect zone-pair sessions` while PC-C pinged the HQ server (excerpt):
 
-```text
-policy exists on zp IN-2-OUT-PAIR
- Zone-pair: IN-2-OUT-PAIR
-  Service-policy inspect : IN-2-OUT-PMAP
-    Class-map: INTERNAL-CLASS-MAP (match-all)
-      Match: access-group 110
-      Inspect
-        Number of Established Sessions = 1
-        Established Sessions
-         Session 2817981888 (192.168.30.3:25)=>(192.168.20.1:0) icmp SIS_OPEN
-    Class-map: class-default (match-any)
-      Match: any
-      Drop (default action)
-        0 packets, 0 bytes
-```
+![show policy-map type ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS16.png)
 
 PC-C's ping created a tracked session (`SIS_OPEN`). That entry in the firewall's memory is what lets the replies back in. Anything that doesn't match ACL 110 falls into `class-default` and gets dropped.
 
 > [!NOTE]
 > **Design consequences**
 >
-> - **No OUT-2-IN pair** means HQ can't *start* a connection into the branch, not even through the VPN, because traffic that comes out of the tunnel still arrives on the OUT-ZONE interface. That's fine for Redgum, because the branch pulls data from HQ, not the other way round. If HQ ever needed to push something, I'd add a narrow OUT-2-IN rule.
+> - **No OUT-2-IN pair** means HQ can't *start* a connection into the branch, not even through the VPN, because traffic that comes out of the tunnel still arrives on the OUT-ZONE interface. That's fine for Redgum, because the branch pulls data from HQ, not the other way round. However, ff HQ ever needed to push something, it is necessary to add a narrow OUT-2-IN rule.
 > - **The self zone** (traffic to and from R3 itself) isn't covered by this policy - it's like mail addressed to the security guard rather than to a tenant. So R3's own logins need their own protection: 5.3 now, plus the management ACL in Phase 5.
 
 > [!NOTE]
 > **Why this matters for security**
 >
 > - **Stateful vs stateless:** a stateless ACL judges every packet on its own, with no memory. A stateful firewall remembers who started the conversation.
-> - **Implicit deny between zones:** if no rule allows it, it's blocked. This "default deny" approach is the safest starting point.
+> - **Implicit deny between zones:** if no rule allows it, it's blocked. This "default deny" approach is the common starting point.
 > - **Zones are segmentation** (Security+ calls them "security zones"): trust depends on where traffic comes from, not just on its IP address.
 
 ### 5.5 Branch perimeter - IOS IPS on R3
@@ -549,7 +536,7 @@ PC-C's ping created a tracked session (`SIS_OPEN`). That entry in the firewall's
 >
 > An IDS (intrusion detection system) watches traffic and raises an alert. An IPS (intrusion prevention system) sits in the path of the traffic, so it can also block it. Think smoke alarm versus sprinkler: one makes noise, the other actually does something about it.
 
-**Decision:** Cisco IOS IPS, checking traffic coming in on S0/0/1 (the WAN side). It's signature-based, which means it looks for known attack patterns. I started small on purpose: retire (switch off) every signature group, switch the `ios_ips basic` group back on, then enable signature 2004 (ICMP Echo Request - the message a normal ping sends) with **alert + drop**. The goal is to make the branch invisible to ping sweeps (an attacker pinging a whole range of addresses to see who answers - like knocking on every door in a street to see who's home) and to stop ping floods at the door. Packet Tracer already keeps the signature files in flash, so I didn't need to import a key.
+**Decision:** Cisco IOS IPS, checking traffic coming in on S0/0/1 (the WAN side). It's signature-based, which means it looks for known attack patterns. I started small on purpose: retire (switch off) every signature group, switch the `ios_ips basic` group back on, then enable signature 2004 (ICMP Echo Request - the message a normal ping sends) with **alert + drop**. The goal is to make the branch invisible to ping sweeps (an attacker pinging a whole range of addresses to see who answers; it is like knocking on every door in a street to see who's home) and to stop ping floods at the door. Packet Tracer already keeps the signature files in flash, so I didn't need to import a key.
 
 ```text
 R3# mkdir ipsdir
@@ -585,6 +572,8 @@ Do you want to accept these changes? [confirm] <Enter>
 ```
 
 **Evidence from my build:** `show ip ips all` (excerpt):
+
+![show ip ips all](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%2017.png)
 
 ```text
 IPS Signature File Configuration Status
