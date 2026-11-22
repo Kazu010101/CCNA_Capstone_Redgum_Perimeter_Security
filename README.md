@@ -1432,7 +1432,7 @@ My review produced these upgrades (the configs are in section 8, and each one ha
 5. **Test your controls with safe, planned attacks** after every change, and re-test after every fix.
 6. **Plan for big floods (DoS) with your ISP** - an IPS signature can't stop a flood.
 
-The biggest thing I learned: building the network is only half the job. Proving it works - and finding where it doesn't - is the other half.
+The biggest thing I learned: building the network is only half the job. Proving it works and finding where it doesn't is the other half.
 
 ---
 
