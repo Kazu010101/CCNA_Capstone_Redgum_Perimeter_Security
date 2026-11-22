@@ -680,23 +680,7 @@ interface Serial0/0/1
 
 **Evidence from my build:** PC-C's ping to 192.168.20.1 lost the first packet, then got 3 replies at TTL=254. Here's `show crypto ipsec sa` on R1 (excerpt):
 
-```text
-interface: Serial0/0/0
-    Crypto map tag: CMAP, local addr 12.12.12.1
-   local  ident (addr/mask/prot/port): (192.168.20.0/255.255.255.0/0/0)
-   remote ident (addr/mask/prot/port): (192.168.30.0/255.255.255.0/0/0)
-   current_peer 23.23.23.1 port 500
-    #pkts encaps: 3, #pkts encrypt: 3, #pkts digest: 0
-    #pkts decaps: 3, #pkts decrypt: 3, #pkts verify: 0
-    #send errors 0, #recv errors 0
-     inbound esp sas:
-      spi: 0xE1EEF96F(3790535023)
-        transform: esp-aes 256 esp-sha-hmac ,
-        in use settings ={Tunnel, }
-        Status: ACTIVE
-     outbound esp sas:
-      spi: 0x28A54D34(681921844)
-```
+![show cypto ipsac sa](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS26.png)
 
 R3 shows the mirror image, with one difference that matters: `#send errors 1`. I explain what that means in [Test 3](#63-test-3---is-branch-to-hq-traffic-really-encrypted).
 
@@ -713,7 +697,7 @@ R3 shows the mirror image, with one difference that matters: `#send errors 1`. I
 > | Old sessions stay safe if a key leaks | PFS - a fresh DH exchange for Phase 2 keys |
 > | Whole original packet protected | ESP in tunnel mode (new outer IP header) |
 >
-> **Is this crypto still current?** RFC 8247 (the IETF's guidance for IKEv2) rates DH group 5 as SHOULD NOT and HMAC-SHA1 as MUST- (still allowed, but on its way out). The lab brief used both. For a real network I'd use IKEv2, DH group 14 or 19+, SHA-256 or better, and a long random key or certificates.
+> **Is this crypto still current?** RFC 8247 (the IETF's guidance for IKEv2) rates DH group 5 as SHOULD NOT and HMAC-SHA1 as MUST- (still allowed, but on its way out). The lab brief used both. For a real network, I'd use IKEv2, DH group 14 or 19+, SHA-256 or better, and a long random key or certificates.
 
 > [!TIP]
 > **What are Diffie-Hellman and PFS?**
@@ -735,7 +719,7 @@ R3 shows the mirror image, with one difference that matters: `#send errors 1`. I
 > [!TIP]
 > **What are NAT and PAT?**
 >
-> NAT swaps private addresses for public ones at the edge of the network. PAT is the many-to-one version: every staff PC shares the ASA's single outside address, and the ASA uses port numbers to remember which reply belongs to which PC. It's like an office switchboard - everyone shares one public phone number, and the receptionist knows which extension each call belongs to.
+> NAT (Network Address Translation) swaps private addresses for public ones at the edge of the network. PAT (Port Address Translation) is the many-to-one version: every staff PC shares the ASA's single outside address, and the ASA uses port numbers to remember which reply belongs to which PC. It's like an office switchboard - everyone shares one public phone number, and the receptionist knows which extension each call belongs to.
 
 ```cisco
 ! ===== CCNAS-ASA =====
@@ -800,12 +784,7 @@ service-policy global-policy global
 
 ## 6. Phase 4 - Attack and verify
 
-Next, I attacked my own build. Each test answers one question, using the Alexiou Principle from section 2.
-
-> [!WARNING]
-> **Lab only**
->
-> I ran these attacks against my own Packet Tracer lab. Never test systems you don't own or don't have written permission to test - unauthorised testing can be a crime.
+Next, I attacked my own build on the Packet Tracer. Each test answers one question, using the Alexiou Principle from section 2.
 
 > [!TIP]
 > **What is MITRE ATT&CK?**
@@ -831,13 +810,7 @@ Next, I attacked my own build. Each test answers one question, using the Alexiou
 3. **How:** I ran `ssh -l admin 12.12.12.1` from PC-C and typed wrong passwords while watching R1's log. The lab brief asked for a Telnet test, but Telnet is switched off (`transport input ssh`), so SSH was the realistic way in.
 4. **What it told me:**
 
-```text
-%SEC_LOGIN-5-LOGIN_FAILED: Login failed [user: admin] [Source: 192.168.30.3] [localport: 22] [Reason: Login Authentication Failed] at 00:40:59 UTC Tue Mar 2 1993
-%SEC_LOGIN-5-LOGIN_FAILED: Login failed [user: admin] [Source: 192.168.30.3] [localport: 22] [Reason: Login Authentication Failed] at 00:41:01 UTC Tue Mar 2 1993
-%SEC_LOGIN-5-LOGIN_FAILED: Login failed [user: admin] [Source: 192.168.30.3] [localport: 22] [Reason: Login Authentication Failed] at 00:41:12 UTC Tue Mar 2 1993
-%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is 0 secs, [user: admin] [Source: 192.168.30.3] [localport: 22] [Reason: Login Authentication Failed] [ACL: sl_def_acl] at 00:41:12 UTC Tue Mar 2 1993
-%SEC_LOGIN-5-QUIET_MODE_OFF: Quiet Mode is OFF, because block period timed out at 00:46:12 UTC Tue Mar 2 1993
-```
+![brute ](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS24.png)
 
 - **3 failures in 13 seconds** (00:40:59 to 00:41:12), all from the same source, 192.168.30.3, against the same account, `admin`, on port 22 (SSH).
 - The third failure switched on "quiet mode" (the lockout), logged at **severity 1 (alert)** - the router's way of saying "look at this now".
