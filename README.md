@@ -846,15 +846,10 @@ sequenceDiagram
 
 1. **Question:** can someone on the internet side sweep or flood R3 with pings - and does the IPS see it?
 2. **Data:** R2's ping results and R3's IPS alerts.
-3. **How:** an extended ping from R2 to 23.23.23.1 with a repeat count of 20. (`ping -t` is a Windows option - Cisco IOS doesn't have it.)
+3. **How:** an extended ping from R2 to 23.23.23.1 with a repeat count of 20. (tried `ping -t` but it is a Windows option, Cisco IOS doesn't have it.)
 4. **What it told me:** R2 reported `Success rate is 0 percent (0/20)`, and R3 logged one alert per packet:
 
-```text
-%IPS-4-SIGNATURE: Sig:2004 Subsig:0 Sev:25  [23.23.23.2 -> 23.23.23.1:0] RiskRating:25
-%IPS-4-SIGNATURE: Sig:2004 Subsig:0 Sev:25  [23.23.23.2 -> 23.23.23.1:0] RiskRating:25
-%IPS-4-SIGNATURE: Sig:2004 Subsig:0 Sev:25  [23.23.23.2 -> 23.23.23.1:0] RiskRating:25
-(one line per echo request)
-```
+![Redgum's topology screenshot](https://github.com/Kazu010101/CCNA_Capstone_Redgum_Perimeter_Security/blob/main/CCNA%20Capstone%20SS/CCNA%20Capstone%20SS24.png)
 
 - Signature 2004 is ICMP Echo Request - a normal ping. The source was 23.23.23.2 (the ISP side), and the target was R3's WAN address.
 - RiskRating 25 is low on Cisco's 0-100 scale. One alert on its own is just noise; twenty in a few seconds from the same source is a pattern worth a ticket.
